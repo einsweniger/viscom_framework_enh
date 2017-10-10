@@ -1,0 +1,5 @@
+build/
+_SYNCAPP/
+**/*Precompute*.???
+data/*/*.dat
+resources/shader/*.gen
