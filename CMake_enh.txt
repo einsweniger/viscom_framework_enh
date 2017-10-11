@@ -1,0 +1,28 @@
+
+option(OPTION_BUILD_DOCS OFF)
+option(OPTION_BUILD_EXAMPLES OFF)
+option(OPTION_BUILD_GPU_TESTS OFF)
+option(OPTION_BUILD_TESTS OFF)
+option(OPTION_BUILD_TOOLS OFF)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/fwenh/extern/glbinding)
+
+file(GLOB_RECURSE SHADER_FILES_ENH ${PROJECT_SOURCE_DIR}/extern/fwenh/resources/shader/*.*)
+file(GLOB_RECURSE SRC_FILES_ENH
+    ${PROJECT_SOURCE_DIR}/extern/fwenh/src/enh/*.h
+    ${PROJECT_SOURCE_DIR}/extern/fwenh/src/enh/*.cpp
+    ${PROJECT_SOURCE_DIR}/extern/fwenh/src/enh/*.inl)
+source_group("shader\\enhanced" FILES ${SHADER_FILES_ENH})
+
+foreach(f ${SRC_FILES_ENH})
+    file(RELATIVE_PATH SRCGR ${PROJECT_SOURCE_DIR}/extern/fwenh ${f})
+    string(REGEX REPLACE "(.*)(/[^/]*)$" "\\1" SRCGR ${SRCGR})
+    string(REPLACE / \\ SRCGR ${SRCGR})
+    source_group("${SRCGR}" FILES ${f})
+endforeach()
+
+list(APPEND ENH_INCLUDE_DIRS
+    extern/fwenh/src
+    extern/fwenh/extern/glbinding/source/glbinding/include)
+
+list(APPEND ENH_LIBS glbinding)
+list(APPEND COMPILE_TIME_DEFS GLFW_INCLUDE_NONE)
