@@ -6,6 +6,13 @@ option(OPTION_BUILD_TESTS OFF)
 option(OPTION_BUILD_TOOLS OFF)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/fwenh/extern/glbinding)
 
+if(CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_CONFIGURATION_TYPES Release Debug DebugOpenGLCalls)
+    set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} CACHE STRING "Append user-defined configuration to list of configurations to make it usable in Visual Studio" FORCE)
+endif()
+
+set(VISCOM_DO_PROFILING ON CACHE BOOL "Turn on profiling.")
+
 file(GLOB_RECURSE SHADER_FILES_ENH ${PROJECT_SOURCE_DIR}/extern/fwenh/resources/shader/*.*)
 file(GLOB_RECURSE SRC_FILES_ENH
     ${PROJECT_SOURCE_DIR}/extern/fwenh/src/enh/*.h
@@ -25,4 +32,8 @@ list(APPEND ENH_INCLUDE_DIRS
     extern/fwenh/extern/glbinding/source/glbinding/include)
 
 list(APPEND ENH_LIBS glbinding)
-list(APPEND COMPILE_TIME_DEFS GLFW_INCLUDE_NONE)
+list(APPEND COMPILE_TIME_DEFS $<$<CONFIG:DebugOpenGLCalls>:VISCOM_OGL_DEBUG_MSGS> GLFW_INCLUDE_NONE)
+
+if (VISCOM_DO_PROFILING)
+    list(APPEND COMPILE_TIME_DEFS ENABLE_PROFILING)
+endif()
