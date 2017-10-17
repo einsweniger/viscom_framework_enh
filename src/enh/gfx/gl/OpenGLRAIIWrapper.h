@@ -16,45 +16,45 @@ namespace viscom::enh {
     class OpenGLRAIIWrapper
     {
     public:
-        OpenGLRAIIWrapper() { T::Create<N>(objs); }
+        OpenGLRAIIWrapper() { T::Create<N>(objs_); }
         OpenGLRAIIWrapper(const OpenGLRAIIWrapper&) = delete;
         OpenGLRAIIWrapper& operator=(const OpenGLRAIIWrapper&) = delete;
-        OpenGLRAIIWrapper(OpenGLRAIIWrapper&& rhs) : objs(std::move(rhs.objs)) { for (auto& obj : rhs.objs) obj = T::null_obj; }
-        OpenGLRAIIWrapper& operator=(OpenGLRAIIWrapper&& rhs) { objs = std::move(rhs.objs); for (auto& obj : rhs.objs) obj = T::null_obj; return *this; }
-        ~OpenGLRAIIWrapper() { T::Destroy<N>(objs); }
+        OpenGLRAIIWrapper(OpenGLRAIIWrapper&& rhs) : objs_(std::move(rhs.objs_)) { for (auto& obj : rhs.objs_) obj = T::null_obj; }
+        OpenGLRAIIWrapper& operator=(OpenGLRAIIWrapper&& rhs) { objs_ = std::move(rhs.objs_); for (auto& obj : rhs.objs_) obj = T::null_obj; return *this; }
+        ~OpenGLRAIIWrapper() { T::Destroy<N>(objs_); }
 
-        typename T::value_type operator[](size_t i) const { return objs[i]; }
+        typename T::value_type operator[](size_t i) const { return objs_[i]; }
 
     private:
-        std::array<typename T::value_type, N> objs;
+        std::array<typename T::value_type, N> objs_;
     };
 
     template<typename T>
     class OpenGLRAIIWrapper<T, 1>
     {
     public:
-        OpenGLRAIIWrapper() : obj(T::Create()) {}
-        explicit OpenGLRAIIWrapper(typename T::value_type newObj) : obj(newObj) {}
+        OpenGLRAIIWrapper() : obj_(T::Create()) {}
+        explicit OpenGLRAIIWrapper(typename T::value_type newObj) : obj_(newObj) {}
         OpenGLRAIIWrapper(const OpenGLRAIIWrapper&) = delete;
         OpenGLRAIIWrapper& operator=(const OpenGLRAIIWrapper&) = delete;
-        OpenGLRAIIWrapper(OpenGLRAIIWrapper&& rhs) : obj(rhs.obj) { rhs.obj = T::null_obj; }
-        OpenGLRAIIWrapper& operator=(OpenGLRAIIWrapper&& rhs) { this->~OpenGLRAIIWrapper(); obj = rhs.obj; rhs.obj = T::null_obj; return *this; }
-        ~OpenGLRAIIWrapper() { obj = T::Destroy(obj); }
+        OpenGLRAIIWrapper(OpenGLRAIIWrapper&& rhs) : obj_(rhs.obj_) { rhs.obj_ = T::null_obj; }
+        OpenGLRAIIWrapper& operator=(OpenGLRAIIWrapper&& rhs) { this->~OpenGLRAIIWrapper(); obj_ = rhs.obj_; rhs.obj_ = T::null_obj; return *this; }
+        ~OpenGLRAIIWrapper() { obj_ = T::Destroy(obj_); }
 
-        operator typename T::value_type() const { return obj; }
+        operator typename T::value_type() const { return obj_; }
         // typename T::value_type get() const { return obj; }
-        explicit operator bool() const { return T::null_obj != obj; }
-        bool operator==(const OpenGLRAIIWrapper& rhs) { return rhs.obj == obj; }
+        explicit operator bool() const { return T::null_obj != obj_; }
+        bool operator==(const OpenGLRAIIWrapper& rhs) { return rhs.obj_ == obj_; }
 
-        friend bool operator==(typename T::value_type lhs, const OpenGLRAIIWrapper<T, 1>& rhs) { return lhs == rhs.obj; }
-        friend bool operator==(const OpenGLRAIIWrapper<T, 1>& lhs, typename T::value_type rhs) { return lhs.obj == rhs; }
+        friend bool operator==(typename T::value_type lhs, const OpenGLRAIIWrapper<T, 1>& rhs) { return lhs == rhs.obj_; }
+        friend bool operator==(const OpenGLRAIIWrapper<T, 1>& lhs, typename T::value_type rhs) { return lhs.obj_ == rhs; }
 
-        typename T::value_type release() { typename T::value_type tmp = obj; obj = T::null_obj; return tmp; }
-        void reset(typename T::value_type newObj = T::null_obj) { obj = T::Destroy(obj); obj = newObj; }
-        void swap(OpenGLRAIIWrapper<T, 1>& other) { typename T::value_type tmp = obj; obj = other.obj; other.obj = tmp; }
+        typename T::value_type release() { typename T::value_type tmp = obj_; obj_ = T::null_obj; return tmp; }
+        void reset(typename T::value_type newObj = T::null_obj) { obj_ = T::Destroy(obj_); obj_ = newObj; }
+        void swap(OpenGLRAIIWrapper<T, 1>& other) { typename T::value_type tmp = obj_; obj_ = other.obj_; other.obj_ = tmp; }
 
     private:
-        typename T::value_type obj;
+        typename T::value_type obj_;
     };
 
     struct ProgramObjectTraits

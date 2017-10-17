@@ -10,6 +10,8 @@
 #include "ShaderBufferBindingPoints.h"
 #include "GLBuffer.h"
 
+#include <cassert>
+
 namespace viscom::enh {
 
     GLUniformBuffer::GLUniformBuffer(const std::string& name, ShaderBufferBindingPoints* bindings) :
@@ -18,8 +20,8 @@ namespace viscom::enh {
         bindingPoint_(bindingPoints_->GetBindingPoint(name)),
         uboName_(name)
     {
-        gl::glBindBuffer(GL_UNIFORM_BUFFER, buffer_->GetBuffer());
-        gl::glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, buffer_->GetBuffer());
+        gl::glBindBuffer(gl::GL_UNIFORM_BUFFER, 0);
     }
 
     /**
@@ -103,6 +105,6 @@ namespace viscom::enh {
 
     void GLUniformBuffer::BindBuffer() const
     {
-        OGL_CALL(glBindBufferRange, GL_UNIFORM_BUFFER, bindingPoint_, buffer_->GetBuffer(), 0, buffer_->GetBufferSize());
+        gl::glBindBufferRange(gl::GL_UNIFORM_BUFFER, bindingPoint_, buffer_->GetBuffer(), 0, buffer_->GetBufferSize());
     }
 }

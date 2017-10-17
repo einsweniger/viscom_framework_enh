@@ -9,5 +9,5 @@
 #pragma once
 
 // ReSharper disable CppUnusedIncludeDirective
-#include "gfx/OpenGLRAIIWrapper.h"
+#include "gfx/gl/OpenGLRAIIWrapper.h"
 // ReSharper restore CppUnusedIncludeDirective

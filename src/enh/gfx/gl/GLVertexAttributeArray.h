@@ -6,12 +6,13 @@
  * @brief  Contains the definition of GLVertexAttributeArray.
  */
 
-#ifndef GLVERTEXATTRIBUTEARRAY_H
-#define GLVERTEXATTRIBUTEARRAY_H
+#pragma once
 
-#include "main.h"
+#include "enh/main.h"
+#include <glbinding/gl/gl.h>
 
-namespace cgu {
+namespace viscom::enh {
+
     /** The type of the vertex attribute inside a shader. */
     enum class VAShaderType
     {
@@ -23,40 +24,23 @@ namespace cgu {
         DOUBLE
     };
 
-    /** Describes a general point for a gpu program. */
-    struct shader_binding_desc
-    {
-
-        /** Unnamed union.*/
-        union
-        {
-            /** Integer binding point. */
-            GLint iBinding;
-            /** Unsigned int binding point. */
-            GLuint uBinding;
-        };
-    };
-
-    /** The location of a general shader binding point. */
-    typedef shader_binding_desc* BindingLocation;
-
     /** Description of a vertex attribute. */
     struct vertex_attribute_desc
     {
         /** Holds the attribute type inside the shader. */
-        VAShaderType shaderType;
+        VAShaderType shaderType_;
         /** Holds the attribute binding location. */
-        BindingLocation location;
+        gl::GLint location_;
         /** Holds the number of components in the attribute. */
-        int size;
+        int size_;
         /** Holds the attributes type in the vertex buffer. */
-        GLenum type;
+        gl::GLenum type_;
         /** Holds whether the attribute should be normalized. */
-        GLboolean normalized;
+        gl::GLboolean normalized_;
         /** The distance between 2 attributes of this type in bytes. */
-        int stride;
+        int stride_;
         /** The offset into the vertex to the beginning of this attribute in bytes. */
-        unsigned int offset;
+        unsigned int offset_;
     };
 
     /**
@@ -68,7 +52,7 @@ namespace cgu {
     class GLVertexAttributeArray
     {
     public:
-        GLVertexAttributeArray(GLuint vertexBuffer, GLuint indexBuffer);
+        GLVertexAttributeArray(gl::GLuint vertexBuffer, gl::GLuint indexBuffer);
         GLVertexAttributeArray(const GLVertexAttributeArray&) = delete;
         GLVertexAttributeArray& operator=(const GLVertexAttributeArray&) = delete;
         GLVertexAttributeArray(GLVertexAttributeArray&& orig);
@@ -77,24 +61,22 @@ namespace cgu {
 
         void StartAttributeSetup() const;
         void EndAttributeSetup() const;
-        void AddVertexAttribute(BindingLocation location, int size, GLenum type, GLboolean normalized,
-            GLsizei stride, size_t offset);
-        void AddVertexAttributeI(BindingLocation location, int size, GLenum type, GLsizei stride,
-            size_t offset);
-        void AddVertexAttributeL(BindingLocation location, int size, GLenum type, GLsizei stride,
-            size_t offset);
+        void AddVertexAttribute(gl::GLint location, int size, gl::GLenum type, gl::GLboolean normalized,
+            gl::GLsizei stride, std::size_t offset);
+        void AddVertexAttributeI(gl::GLint location, int size, gl::GLenum type, gl::GLsizei stride,
+            std::size_t offset);
+        void AddVertexAttributeL(gl::GLint location, int size, gl::GLenum type, gl::GLsizei stride,
+            std::size_t offset);
         void UpdateVertexAttributes();
         void DisableAttributes();
         void EnableVertexAttributeArray() const;
         void DisableVertexAttributeArray() const;
 
     private:
-        VertexArrayRAII vao;
-        GLuint i_buffer;
-        GLuint v_buffer;
-        std::vector<vertex_attribute_desc> v_desc;
+        VertexArrayRAII vao_;
+        gl::GLuint iBuffer_;
+        gl::GLuint vBuffer_;
+        std::vector<vertex_attribute_desc> vDesc_;
 
     };
 }
-
-#endif /* GLVERTEXATTRIBUTEARRAY_H */

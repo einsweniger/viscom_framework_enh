@@ -15,30 +15,24 @@
 namespace viscom::enh {
 
     class GLTexture;
-    class FrameBuffer;
-
-    namespace gpgpu {
-        class CUDAImage;
-    }
 
     /** Describes the format of a texture. */
     struct TextureDescriptor
     {
-        TextureDescriptor(unsigned int btsPP, gl::GLenum intFmt, gl::GLenum fmt, gl::GLenum tp) : bytesPP(btsPP), internalFormat(intFmt), format(fmt), type(tp) {};
+        TextureDescriptor(unsigned int btsPP, gl::GLenum intFmt, gl::GLenum fmt, gl::GLenum tp) : bytesPP_(btsPP), internalFormat_(intFmt), format_(fmt), type_(tp) {};
 
         /** Holds the bytes per pixel of the format. */
-        unsigned int bytesPP;
+        unsigned int bytesPP_;
         /** Holds the internal format. */
-        gl::GLenum internalFormat;
+        gl::GLenum internalFormat_;
         /** Holds the format. */
-        gl::GLenum format;
+        gl::GLenum format_;
         /** Holds the type. */
-        gl::GLenum type;
+        gl::GLenum type_;
     };
 
     class TextureGLIdentifierAccessor
     {
-        friend class gpgpu::CUDAImage;
         friend class GLTexture;
         friend class FrameBuffer;
         friend class ShadowMap;
@@ -80,9 +74,9 @@ namespace viscom::enh {
         void UploadData(std::vector<uint8_t>& data) const;
         void GenerateMipMaps() const;
         void ClearTexture(unsigned int mipLevel, const glm::vec4& data) const;
-        glm::uvec3 GetDimensions() const { return glm::uvec3(width, height, depth); }
+        glm::uvec3 GetDimensions() const { return glm::uvec3(width_, height_, depth_); }
         glm::uvec3 GetLevelDimensions(int level) const;
-        const TextureDescriptor& GetDescriptor() const { return descriptor; }
+        const TextureDescriptor& GetDescriptor() const { return descriptor_; }
 
         void SampleWrapMirror() const;
         void SampleWrapClamp() const;
@@ -94,24 +88,24 @@ namespace viscom::enh {
 
         void ActivateShadowMapComparison() const;
 
-        const TextureGLIdentifierAccessor& GetGLIdentifier() const { return id; };
+        const TextureGLIdentifierAccessor& GetGLIdentifier() const { return id_; };
 
     private:
         void SetSampleWrap(gl::GLenum param) const;
 
         /** Holds the OpenGL texture id. */
-        TextureGLIdentifierAccessor id;
+        TextureGLIdentifierAccessor id_;
         /** Holds the texture descriptor. */
-        TextureDescriptor descriptor;
+        TextureDescriptor descriptor_;
 
         /** Holds the width. */
-        unsigned int width;
+        unsigned int width_;
         /** Holds the height. */
-        unsigned int height;
+        unsigned int height_;
         /** Holds the depth or number of array slices. */
-        unsigned int depth;
+        unsigned int depth_;
         /** Holds the number of MipMap levels the texture has. */
-        unsigned int mipMapLevels;
+        unsigned int mipMapLevels_;
 
         void InitSampling() const;
     };
