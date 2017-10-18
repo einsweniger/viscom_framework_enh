@@ -30,6 +30,7 @@ namespace viscom::enh {
         ~ShaderBufferBindingPoints();
 
         gl::GLuint GetBindingPoint(const std::string& name);
+        void BindBufferBlock(gl::GLuint program, const std::string& name);
 
     private:
         /** holds map that maps uniform buffer names to binding points. */

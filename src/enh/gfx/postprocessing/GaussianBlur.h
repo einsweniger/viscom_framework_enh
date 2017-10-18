@@ -17,7 +17,6 @@
 namespace viscom {
 
     class GPUProgram;
-
 }
 
 namespace viscom::enh {

@@ -70,7 +70,7 @@ namespace viscom::enh {
         vertices.emplace_back(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 
         vBuffer_ = std::make_unique<GLBuffer>(gl::GL_STATIC_DRAW);
-        glBindBuffer(gl::GL_ARRAY_BUFFER, vBuffer_->GetBuffer());
+        gl::glBindBuffer(gl::GL_ARRAY_BUFFER, vBuffer_->GetBuffer());
         vBuffer_->InitializeData(vertices);
         gl::glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
 
@@ -84,11 +84,11 @@ namespace viscom::enh {
 
         auto shaderPositions = simpleProgram_->GetAttributeLocations(attributeNames);
 
-        glBindBuffer(gl::GL_ARRAY_BUFFER, vBuffer_->GetBuffer());
+        gl::glBindBuffer(gl::GL_ARRAY_BUFFER, vBuffer_->GetBuffer());
 
         drawAttribBinds_.GetVertexAttributes().push_back(std::make_unique<GLVertexAttributeArray>(vBuffer_->GetBuffer(), iBuffer_->GetBuffer()));
         SimpleVertex::VertexAttributeSetup(drawAttribBinds_.GetVertexAttributes().back().get(), shaderPositions);
-        glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
+        gl::glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
 
         drawAttribBinds_.GetUniformIds() = simpleProgram_->GetUniformLocations({ "MVMatrix", "modelMatrix", "color", "pointSize" });
     }
@@ -143,7 +143,7 @@ namespace viscom::enh {
         gl::glUniform4fv(drawAttribBinds_.GetUniformIds()[2], 1, glm::value_ptr(color));
         gl::glUniform1f(drawAttribBinds_.GetUniformIds()[3], pointSize);
 
-        glBindBuffer(gl::GL_ARRAY_BUFFER, vBuffer_->GetBuffer());
+        gl::glBindBuffer(gl::GL_ARRAY_BUFFER, vBuffer_->GetBuffer());
         drawAttribBinds_.GetVertexAttributes()[0]->EnableVertexAttributeArray();
 
         auto primitiveType = gl::GL_TRIANGLES;

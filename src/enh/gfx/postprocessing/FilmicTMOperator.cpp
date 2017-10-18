@@ -30,7 +30,7 @@ namespace viscom::enh {
         params_.white_ = 11.2f;
         params_.exposure_ = 2.0f;
 
-        tmProgram_->BindUniformBlock("filmicBuffer", *app->GetUBOBindingPoints());
+        app->GetUBOBindingPoints()->BindBufferBlock(renderable_->GetGPUProgram()->getProgramId(), "filmicBuffer");
 
         // Alternative values:
         /*params.sStrength = 0.22f;

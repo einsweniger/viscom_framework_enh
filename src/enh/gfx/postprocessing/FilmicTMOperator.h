@@ -60,7 +60,7 @@ namespace viscom::enh {
         void LoadParameters(std::istream& istr);
 
     private:
-        static const unsigned int VERSION = 1;
+        static constexpr unsigned int VERSION = 1;
 
         /** Holds the screen renderable for the tone-mapping. */
         std::unique_ptr<FullscreenQuad> renderable_;

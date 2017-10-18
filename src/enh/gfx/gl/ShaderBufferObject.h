@@ -10,6 +10,9 @@
 
 #include "enh/core/owned_ptr.h"
 
+#include <string>
+#include <glbinding/gl/gl.h>
+
 namespace viscom::enh {
     
     class GLBuffer;

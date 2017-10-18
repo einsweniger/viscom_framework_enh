@@ -7,13 +7,11 @@
  */
 
 #include "ShaderMeshAttributes.h"
+#include "GLVertexAttributeArray.h"
 
 namespace viscom::enh {
 
-    ShaderMeshAttributes::ShaderMeshAttributes()
-    {
-    }
-
+    ShaderMeshAttributes::ShaderMeshAttributes() = default;
 
     ShaderMeshAttributes::~ShaderMeshAttributes() = default;
 }

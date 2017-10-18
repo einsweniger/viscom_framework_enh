@@ -10,9 +10,7 @@
 
 namespace viscom::enh {
 
-    ShaderBufferBindingPoints::~ShaderBufferBindingPoints()
-    {
-    }
+    ShaderBufferBindingPoints::~ShaderBufferBindingPoints() = default;
 
     /**
      * Returns the binding point for a shader buffer with the given name.
@@ -28,5 +26,11 @@ namespace viscom::enh {
             bindingPoints_[name] = nextBindingPoint_;
             return nextBindingPoint_++;
         }
+    }
+
+    void ShaderBufferBindingPoints::BindBufferBlock(gl::GLuint program, const std::string& name)
+    {
+        auto uboIndex = gl::glGetUniformBlockIndex(program, name.c_str());
+        gl::glUniformBlockBinding(program, uboIndex, GetBindingPoint("filmicBuffer"));
     }
 }
