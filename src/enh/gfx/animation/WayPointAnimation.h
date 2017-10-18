@@ -13,6 +13,8 @@
 #include <cereal/access.hpp>
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/base_class.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/utility.hpp>
 #include "enh/core/serialization_helper.h"
 
 namespace viscom {
@@ -28,7 +30,7 @@ namespace viscom::enh {
     {
         glm::vec3 position_;
 
-        template<class Archive> void serialize(Archive &ar, const unsigned int) {
+        template<class Archive> void serialize(Archive& ar, const std::uint32_t) {
             ar(cereal::make_nvp("position", position_));
         }
     };
@@ -111,4 +113,4 @@ namespace viscom::enh {
 }
 
 CEREAL_CLASS_VERSION(viscom::enh::WayPointInfo, 1)
-CEREAL_CLASS_VERSION(viscom::enh::WayPointAnimation, 2)
+CEREAL_CLASS_VERSION(viscom::enh::WayPointAnimation, 1)

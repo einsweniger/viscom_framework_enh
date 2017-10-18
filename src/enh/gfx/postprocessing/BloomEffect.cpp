@@ -10,7 +10,7 @@
 #include "enh/ApplicationNodeBase.h"
 #include "enh/gfx/gl/GLTexture.h"
 #include <imgui.h>
-#include "enh/core/serializationHelper.h"
+#include "enh/core/serialization_helper.h"
 
 namespace viscom::enh {
 

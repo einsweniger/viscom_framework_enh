@@ -11,7 +11,7 @@
 #include "core/gfx/FrameBuffer.h"
 #include "enh/gfx/gl/GLUniformBuffer.h"
 #include "enh/gfx/gl/GLTexture.h"
-#include "enh/core/serializationHelper.h"
+#include "enh/core/serialization_helper.h"
 #include <imgui.h>
 
 namespace viscom::enh {
