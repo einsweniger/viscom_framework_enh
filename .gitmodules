@@ -1,3 +1,7 @@
 [submodule "extern/glbinding"]
 	path = extern/glbinding
 	url = https://github.com/cginternals/glbinding.git
+[submodule "extern/cereal"]
+	path = extern/cereal
+	url = https://github.com/USCiLab/cereal
+	branch = master
