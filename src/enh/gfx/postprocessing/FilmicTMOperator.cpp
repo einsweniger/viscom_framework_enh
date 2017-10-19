@@ -11,14 +11,13 @@
 #include "core/gfx/FrameBuffer.h"
 #include "enh/gfx/gl/GLUniformBuffer.h"
 #include "enh/gfx/gl/GLTexture.h"
-#include "enh/core/serialization_helper.h"
 #include <imgui.h>
 
 namespace viscom::enh {
 
     FilmicTMOperator::FilmicTMOperator(ApplicationNodeBase* app) :
         renderable_(app->CreateFullscreenQuad("tm/filmic.fp")),
-        uniformIds_(renderable_->GetGPUProgram()->getUniformLocations({ "sourceTex" })),
+        uniformIds_(renderable_->GetGPUProgram()->GetUniformLocations({ "sourceTex" })),
         filmicUBO_(new GLUniformBuffer("filmicBuffer", sizeof(FilmicTMParameters), app->GetUBOBindingPoints()))
     {
         params_.sStrength_ = 0.15f;
@@ -81,24 +80,5 @@ namespace viscom::enh {
             renderable_->Draw();
             gl::glUseProgram(0);
         });
-    }
-
-    void FilmicTMOperator::SaveParameters(std::ostream& ostr) const
-    {
-        serializeHelper::write(ostr, std::string("FilmicTMOperator"));
-        serializeHelper::write(ostr, VERSION);
-        serializeHelper::write(ostr, params_);
-    }
-
-    void FilmicTMOperator::LoadParameters(std::istream& istr)
-    {
-        std::string clazzName;
-        unsigned int version;
-        serializeHelper::read(istr, clazzName);
-        if (clazzName != "FilmicTMOperator") throw std::runtime_error("Serialization Error: wrong class.");
-        serializeHelper::read(istr, version);
-        if (version > VERSION) throw std::runtime_error("Serialization Error: wrong version.");
-
-        serializeHelper::read(istr, params_);
     }
 }

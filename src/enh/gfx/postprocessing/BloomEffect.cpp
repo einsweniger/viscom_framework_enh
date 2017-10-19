@@ -10,7 +10,6 @@
 #include "enh/ApplicationNodeBase.h"
 #include "enh/gfx/gl/GLTexture.h"
 #include <imgui.h>
-#include "enh/core/serialization_helper.h"
 
 namespace viscom::enh {
 
@@ -128,24 +127,5 @@ namespace viscom::enh {
             blurPassRTs[1] = std::make_unique<GLTexture>(sizeBlurRT.x, sizeBlurRT.y, texDesc, nullptr);
             base *= 2;
         }
-    }
-
-    void BloomEffect::SaveParameters(std::ostream& ostr) const
-    {
-        serializeHelper::write(ostr, std::string("BloomEffect"));
-        serializeHelper::write(ostr, VERSION);
-        serializeHelper::write(ostr, params_);
-    }
-
-    void BloomEffect::LoadParameters(std::istream& istr)
-    {
-        std::string clazzName;
-        unsigned int version;
-        serializeHelper::read(istr, clazzName);
-        if (clazzName != "BloomEffect") throw std::runtime_error("Serialization Error: wrong class.");
-        serializeHelper::read(istr, version);
-        if (version > VERSION) throw std::runtime_error("Serialization Error: wrong version.");
-
-        serializeHelper::read(istr, params_);
     }
 }

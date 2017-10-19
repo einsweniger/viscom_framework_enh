@@ -13,6 +13,8 @@
 #include <vector>
 #include <glm/vec2.hpp>
 #include <glbinding/gl/gl.h>
+#include <cereal/cereal.hpp>
+#include <cereal/access.hpp>
 
 namespace viscom {
 
@@ -31,6 +33,14 @@ namespace viscom::enh {
         float bloomWidth_;
         float defocus_;
         float bloomIntensity_;
+
+        template<class Archive> void serialize(Archive& ar, const std::uint32_t) {
+            ar(cereal::make_nvp("exposure", exposure_),
+                cereal::make_nvp("bloomThreshold", bloomThreshold_),
+                cereal::make_nvp("bloomWidth", bloomWidth_),
+                cereal::make_nvp("defocus", defocus_),
+                cereal::make_nvp("bloomIntensity", bloomIntensity_));
+        }
     };
 
     class BloomEffect
@@ -46,12 +56,15 @@ namespace viscom::enh {
         void SetExposure(float exposure) { params_.exposure_ = exposure; }
         float GetExposure() const { return params_.exposure_; }
 
-        void SaveParameters(std::ostream& ostr) const;
-        void LoadParameters(std::istream& istr);
+        template<class Archive> void SaveParameters(Archive& ar, const std::uint32_t) const {
+            ar(cereal::make_nvp("params", params_));
+        }
+
+        template<class Archive> void LoadParameters(Archive& ar, const std::uint32_t) {
+            ar(cereal::make_nvp("params", params_));
+        }
 
     private:
-
-        static constexpr unsigned int VERSION = 1;
         using BlurPassTargets = std::array<std::unique_ptr<GLTexture>, 2>;
         static constexpr unsigned int NUM_PASSES = 6;
 
@@ -80,3 +93,5 @@ namespace viscom::enh {
         std::vector<int> blurTextureUnitIds_;
     };
 }
+
+CEREAL_CLASS_VERSION(viscom::enh::BloomParams, 1)
