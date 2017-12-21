@@ -182,7 +182,7 @@ namespace viscom::enh {
         case gl::GL_RED: channelsNeeded = 1; break;
         case gl::GL_RG: channelsNeeded = 2; break;
         case gl::GL_RGB: channelsNeeded = 3; break;
-        case gl::GL_RGBA: channelsNeeded = 4; break;
+        case gl::GL_RGBA: channelsNeeded = 4; break; //-V112
         default:
             LOG(FATAL) << "Unknown texture format (" << descriptor_.format_ << ").";
             throw std::runtime_error("Unknown texture format.");
@@ -239,7 +239,7 @@ namespace viscom::enh {
      */
     void GLTexture::DownloadData(std::vector<uint8_t>& data, size_t offset, size_t size) const
     {
-        if (size == 0) size = width_ * height_ * depth_ * descriptor_.bytesPP_;
+        if (size == 0) size = static_cast<std::size_t>(width_ * height_ * depth_ * descriptor_.bytesPP_);
         data.resize(size);
         assert(data.size() != 0);
 
@@ -268,13 +268,13 @@ namespace viscom::enh {
         if (descriptor_.format_ == gl::GL_RED) comp = 1;
         else if (descriptor_.format_ == gl::GL_RG) comp = 2;
         else if (descriptor_.format_ == gl::GL_RGB) comp = 3;
-        else if (descriptor_.format_ == gl::GL_RGBA) comp = 4;
+        else if (descriptor_.format_ == gl::GL_RGBA) comp = 4; //-V112
         else {
             LOG(WARNING) << "Texture format not supported for downloading.";
             return;
         }
 
-        data.resize(width_ * height_ * depth_ * comp);
+        data.resize(static_cast<std::size_t>(width_ * height_ * depth_ * comp));
         assert(data.size() != 0);
 
         // TODO: create external PBOs for real asynchronous up-/download [8/19/2015 Sebastian Maisch]
@@ -302,7 +302,7 @@ namespace viscom::enh {
         if (descriptor_.format_ == gl::GL_RED) comp = 1;
         else if(descriptor_.format_ == gl::GL_RG) comp = 2;
         else if(descriptor_.format_ == gl::GL_RGB) comp = 3;
-        else if(descriptor_.format_ == gl::GL_RGBA) comp = 4;
+        else if(descriptor_.format_ == gl::GL_RGBA) comp = 4; //-V112
         else {
             LOG(WARNING) << "Texture format not supported for saving.";
             return;
@@ -310,13 +310,13 @@ namespace viscom::enh {
         std::vector<uint8_t> screenData;
         DownloadData8Bit(screenData);
 
-        auto stride = width_ * 4;
+        auto stride = static_cast<int>(width_ * comp);
         for (unsigned i = 0; i < height_ / 2; ++i) {
             auto first = i * stride;
             auto last = ((i + 1) * stride) - 1;
             std::swap_ranges(screenData.begin() + first, screenData.begin() + last, screenData.end() - last - 1);
         }
-        stbi_write_png(filename.c_str(), width_, height_, comp, screenData.data(), stride * sizeof(uint8_t));
+        stbi_write_png(filename.c_str(), width_, height_, comp, screenData.data(), stride * static_cast<int>(sizeof(uint8_t)));
     }
 
     /**

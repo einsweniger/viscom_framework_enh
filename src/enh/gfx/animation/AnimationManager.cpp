@@ -77,7 +77,7 @@ namespace viscom::enh {
         if (ImGui::BeginPopupModal(("Select Edit " + name).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             auto rbChange = ImGui::RadioButton("None", &currentAnimation_, -1);
             for (const auto& set : animationsByName_) if (ImGui::RadioButton(set.first.c_str(), &currentAnimation_, set.second.first)) rbChange = true;
-            if (rbChange) editor_.SetCurrentEdited(currentAnimation_ == -1 ? nullptr : &animations_[currentAnimation_]);
+            if (rbChange) editor_.SetCurrentEdited(currentAnimation_ == -1 ? nullptr : &animations_[static_cast<std::size_t>(currentAnimation_)]);
             if (ImGui::Button("Close")) {
                 ImGui::CloseCurrentPopup();
                 showSelectEditAnimationPopup = false;
@@ -129,23 +129,23 @@ namespace viscom::enh {
 
         if (showLoadSelectedPopup) {
             std::tie(dlgReturn, fileName) = GuiHelper::OpenFileDialog(("Load Selected " + name).c_str(), showLoadSelectedPopup);
-            if (dlgReturn == GuiHelper::DialogReturn::OK) LoadAnimation(fileName, selectedSet);
+            if (dlgReturn == GuiHelper::DialogReturn::OK) LoadAnimation(fileName, static_cast<std::size_t>(selectedSet));
             if (dlgReturn != GuiHelper::DialogReturn::NO_RETURN) selectedSet = 0;
         }
 
         if (showSaveSelectedPopup) {
             std::tie(dlgReturn, fileName) = GuiHelper::OpenFileDialog(("Save Selected" + name).c_str(), showSaveSelectedPopup);
-            if (dlgReturn == GuiHelper::DialogReturn::OK) SaveAnimation(fileName, selectedSet);
+            if (dlgReturn == GuiHelper::DialogReturn::OK) SaveAnimation(fileName, static_cast<std::size_t>(selectedSet));
             if (dlgReturn != GuiHelper::DialogReturn::NO_RETURN) selectedSet = 0;
         }
 
         if (!showMenu && showEdit && currentAnimation_ != -1) {
-            animations_[currentAnimation_].ShowEditDialog(names_[currentAnimation_]);
+            animations_[static_cast<std::size_t>(currentAnimation_)].ShowEditDialog(names_[static_cast<std::size_t>(currentAnimation_)]);
         }
     }
 
     template <class T>
-    void TAnimationManager<T>::LoadAnimation(const std::string& filename, int set)
+    void TAnimationManager<T>::LoadAnimation(const std::string& filename, std::size_t set)
     {
         std::ifstream wpFile(directory_ + "/" + filename, std::ios::in);
         if (wpFile.is_open()) {
@@ -155,7 +155,7 @@ namespace viscom::enh {
     }
 
     template <class T>
-    void TAnimationManager<T>::SaveAnimation(const std::string& filename, int set)
+    void TAnimationManager<T>::SaveAnimation(const std::string& filename, std::size_t set)
     {
         std::ofstream ofs(directory_ + "/" + filename, std::ios::out);
 
@@ -188,7 +188,7 @@ namespace viscom::enh {
         ia(cereal::make_nvp("animations", animations_),
             cereal::make_nvp("animationNames", animationNames));
 
-        for (unsigned int i = 0; i < animations_.size(); ++i) {
+        for (std::size_t i = 0; i < animations_.size(); ++i) {
             animationsByName_.insert(std::make_pair(animationNames[i], std::make_pair(i, &animations_[i])));
         }
     }

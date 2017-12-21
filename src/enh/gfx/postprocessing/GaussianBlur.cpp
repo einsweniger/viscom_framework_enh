@@ -40,7 +40,6 @@ namespace viscom::enh {
         gl::glUseProgram(gaussianProgram_->getProgramId());
         gl::glUniform2f(gaussianUniformIds_[2], 1.0f, 0.0f);
         gl::glUniform1f(gaussianUniformIds_[3], 1.0f);
-        std::vector<int> textureStages;
 
         /*for (auto i = 0; i < blurredShadowMap_.size(); ++i) {
             shadowMapRT_->GetTextures()[i]->ActivateTexture(GL_TEXTURE0 + i);

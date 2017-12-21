@@ -22,7 +22,7 @@ namespace viscom::enh {
         try {
             return bindingPoints_.at(name);
         }
-        catch (std::out_of_range e) {
+        catch (std::out_of_range&) {
             bindingPoints_[name] = nextBindingPoint_;
             return nextBindingPoint_++;
         }

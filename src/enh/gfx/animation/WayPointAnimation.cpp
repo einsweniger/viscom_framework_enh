@@ -49,16 +49,16 @@ namespace viscom::enh {
         distances[0] = 0.0f;
         if (normalizeTime_) {
             auto totalDistances = 0.0f;
-            for (auto i = 1; i < distances.size(); ++i) {
+            for (std::size_t i = 1; i < distances.size(); ++i) {
                 distances[i] = glm::distance(wayPoints_[i - 1].first.position_, wayPoints_[i].first.position_);
                 totalDistances += distances[i];
             }
 
-            for (auto i = 1; i < distances.size(); ++i) distances[i] = distances[i] * totalTime_ / totalDistances;
+            for (std::size_t i = 1; i < distances.size(); ++i) distances[i] = distances[i] * totalTime_ / totalDistances;
         }
 
         wayPoints_[0].second = 0.0f;
-        for (auto i = 1; i < distances.size(); ++i) wayPoints_[i].second = wayPoints_[i - 1].second + distances[i];
+        for (std::size_t i = 1; i < distances.size(); ++i) wayPoints_[i].second = wayPoints_[i - 1].second + distances[i];
     }
 
     bool WayPointAnimation::DoAnimationStep(float elapsedTime)
@@ -69,34 +69,36 @@ namespace viscom::enh {
             return false;
         }
 
-        auto cI = 1;
+        std::size_t cI = 1;
         for (; cI < wayPoints_.size(); ++cI) if (wayPoints_[cI].second > GetCurrentTime()) break;
 
         if (cI >= wayPoints_.size()) {
-            cI = static_cast<int>(wayPoints_.size() - 1);
+            cI = wayPoints_.size() - 1;
             StopAnimation();
         }
         auto alpha = (GetCurrentTime() - wayPoints_[cI - 1].second) / (wayPoints_[cI].second - wayPoints_[cI - 1].second);
+        auto& wpCI = wayPoints_[cI].first;
+        auto& wpCIn1 = wayPoints_[cI - 1].first;
         switch (interpolationMode_) {
         case 1: {
-            auto v0 = (cI == 1) ? 2.0f * wayPoints_[cI - 1].first.position_ - wayPoints_[cI].first.position_ : wayPoints_[cI - 2].first.position_;
-            auto v4 = (cI == wayPoints_.size() - 1) ? 2.0f * wayPoints_[cI].first.position_ - wayPoints_[cI - 1].first.position_ : wayPoints_[cI + 1].first.position_;
-            currentState_.position_ = glm::catmullRom(v0, wayPoints_[cI - 1].first.position_, wayPoints_[cI].first.position_, v4, alpha);
+            auto v0 = (cI == 1) ? 2.0f * wpCIn1.position_ - wpCI.position_ : wayPoints_[cI - 2].first.position_;
+            auto v4 = (cI == wayPoints_.size() - 1) ? 2.0f * wpCI.position_ - wpCIn1.position_ : wayPoints_[cI + 1].first.position_;
+            currentState_.position_ = glm::catmullRom(v0, wpCIn1.position_, wpCI.position_, v4, alpha);
         } break;
         case 2: {
-            auto v0 = (cI == 1) ? 2.0f * wayPoints_[cI - 1].first.position_ - wayPoints_[cI].first.position_ : wayPoints_[cI - 2].first.position_;
-            auto v4 = (cI == wayPoints_.size() - 1) ? 2.0f * wayPoints_[cI].first.position_ - wayPoints_[cI - 1].first.position_ : wayPoints_[cI + 1].first.position_;
-            currentState_.position_ = glm::cubic(v0, wayPoints_[cI - 1].first.position_, wayPoints_[cI].first.position_, v4, alpha);
+            auto v0 = (cI == 1) ? 2.0f * wpCIn1.position_ - wpCI.position_ : wayPoints_[cI - 2].first.position_;
+            auto v4 = (cI == wayPoints_.size() - 1) ? 2.0f * wpCI.position_ - wpCIn1.position_ : wayPoints_[cI + 1].first.position_;
+            currentState_.position_ = glm::cubic(v0, wpCIn1.position_, wpCI.position_, v4, alpha);
         } break;
         case 3: {
-            auto t0 = (cI == 1) ? glm::normalize(wayPoints_[cI].first.position_ - wayPoints_[cI - 1].first.position_)
-                : glm::normalize(wayPoints_[cI].first.position_ - wayPoints_[cI - 2].first.position_);
-            auto t1 = (cI == wayPoints_.size() - 1) ? glm::normalize(wayPoints_[cI].first.position_ - wayPoints_[cI - 1].first.position_)
-                : glm::normalize(wayPoints_[cI + 1].first.position_ - wayPoints_[cI - 1].first.position_);
-            currentState_.position_ = glm::hermite(wayPoints_[cI - 1].first.position_, t0, wayPoints_[cI].first.position_, t1, alpha);
+            auto t0 = (cI == 1) ? glm::normalize(wpCI.position_ - wpCIn1.position_)
+                : glm::normalize(wpCI.position_ - wayPoints_[cI - 2].first.position_);
+            auto t1 = (cI == wayPoints_.size() - 1) ? glm::normalize(wpCI.position_ - wpCIn1.position_)
+                : glm::normalize(wayPoints_[cI + 1].first.position_ - wpCIn1.position_);
+            currentState_.position_ = glm::hermite(wpCIn1.position_, t0, wpCI.position_, t1, alpha);
         } break;
         default: {
-            currentState_.position_ = glm::mix(wayPoints_[cI - 1].first.position_, wayPoints_[cI].first.position_, alpha);
+            currentState_.position_ = glm::mix(wayPoints_[cI - 1].first.position_, wpCI.position_, alpha);
         } break;
         }
 

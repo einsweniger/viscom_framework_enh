@@ -28,7 +28,7 @@ namespace viscom::enh {
         static void VertexAttributeSetup(GLVertexAttributeArray* vao, const std::vector<gl::GLint>& shaderPositions)
         {
             vao->StartAttributeSetup();
-            if (shaderPositions[0] >= 0) vao->AddVertexAttribute(shaderPositions[0], 4, gl::GL_FLOAT, gl::GL_FALSE, sizeof(SimpleVertex), offsetof(SimpleVertex, pos));
+            if (shaderPositions[0] >= 0) vao->AddVertexAttribute(shaderPositions[0], 4, gl::GL_FLOAT, gl::GL_FALSE, sizeof(SimpleVertex), offsetof(SimpleVertex, pos)); //-V112
             vao->EndAttributeSetup();
         }
 
@@ -117,7 +117,7 @@ namespace viscom::enh {
 
     void SimpleMeshRenderer::DrawSphere(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 4);
+        DrawSubmesh(MVMatrix, modelMatrix, color, 4); //-V112
     }
 
     void SimpleMeshRenderer::DrawTorus(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
@@ -150,7 +150,7 @@ namespace viscom::enh {
         if (submeshId == 6) primitiveType = gl::GL_POINTS;
         if (submeshId == 7) primitiveType = gl::GL_LINES;
         glDrawElements(primitiveType, submeshInfo_[submeshId].second, gl::GL_UNSIGNED_INT,
-            (static_cast<char*> (nullptr)) + (submeshInfo_[submeshId].first * sizeof(unsigned int)));
+            (static_cast<char*> (nullptr)) + (submeshInfo_[submeshId].first * sizeof(unsigned int))); //-V104
 
         drawAttribBinds_.GetVertexAttributes()[0]->DisableVertexAttributeArray();
         gl::glUseProgram(0);

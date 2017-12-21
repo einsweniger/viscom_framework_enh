@@ -61,7 +61,10 @@ namespace viscom::enh {
         auto invNearBlurRadius = 1.0f / glm::max(static_cast<float>(nearBlurRadius), 0.0001f);
         // const auto scale = (params.apertureRadius * focalLength) / (params.focusZ - focalLength);
         const auto scale = (params_.apertureRadius_ * focalLength) / (params_.focusZ_ * maxCoCRadius);
-        glm::vec3 clipInfo(2.0f * cam.GetNearZ() * cam.GetFarZ(), cam.GetFarZ() - cam.GetNearZ(), cam.GetFarZ() + cam.GetNearZ());
+
+        // see https://stackoverflow.com/questions/6652253/getting-the-true-z-value-from-the-depth-buffer
+        // linear solution should be: -B / (z_n + A)
+        glm::vec3 clipInfo(2.0f * cam.GetNearPlane() * cam.GetFarPlane(), cam.GetFarPlane() - cam.GetNearPlane(), cam.GetFarPlane() + cam.GetNearPlane());
 
         gl::glUseProgram(cocProgram_->getProgramId());
         gl::glUniform1i(cocUniformIds_[0], 0);
@@ -108,7 +111,7 @@ namespace viscom::enh {
         gl::glFinish();
 
         gl::glUseProgram(combineProgram_->getProgramId());
-        gl::glUniform1i(combineUniformIds_[0], 0);
+        gl::glUniform1i(combineUniformIds_[0], 0); //-V525
         gl::glUniform1i(combineUniformIds_[1], 1);
         gl::glUniform1i(combineUniformIds_[2], 2);
         gl::glUniform1i(combineUniformIds_[3], 0);

@@ -50,7 +50,7 @@ namespace viscom::enh {
         friend bool operator==(const OpenGLRAIIWrapper<T, 1>& lhs, typename T::value_type rhs) { return lhs.obj_ == rhs; }
 
         typename T::value_type release() { typename T::value_type tmp = obj_; obj_ = T::null_obj; return tmp; }
-        void reset(typename T::value_type newObj = T::null_obj) { obj_ = T::Destroy(obj_); obj_ = newObj; }
+        void reset(typename T::value_type newObj = T::null_obj) { obj_ = T::Destroy(obj_); obj_ = newObj; } //-V519
         void swap(OpenGLRAIIWrapper<T, 1>& other) { typename T::value_type tmp = obj_; obj_ = other.obj_; other.obj_ = tmp; }
 
     private:

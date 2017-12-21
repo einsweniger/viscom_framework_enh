@@ -32,10 +32,10 @@ namespace viscom::enh {
             names_.emplace_back(name);
             return AddLastAnimation(name);
         }
-        T& operator[] (unsigned int id) { return animations_[id]; }
-        const T& operator[] (unsigned int id) const { return animations_[id]; }
+        T& operator[] (std::size_t id) { return animations_[id]; }
+        const T& operator[] (std::size_t id) const { return animations_[id]; }
         T& operator[] (const std::string& name) { return *animationsByName_[name].second; }
-        const T& operator[] (const std::string& name) const { return *animationsByName_.at(name).second; }
+        const T& operator[] (const std::string& name) const { return *animationsByName_.at(name).second; } //-V659
         T& GetCurrent() { return animations_[currentAnimation_]; }
         const T& GetCurrent() const { return animations_[currentAnimation_]; }
         int GetCurrentId() const { return currentAnimation_; }
@@ -50,8 +50,8 @@ namespace viscom::enh {
 
         void UnselectCurrent() { currentAnimation_ = -1; editor_.SetCurrentEdited(nullptr); }
 
-        void LoadAnimation(const std::string& filename, int set);
-        void SaveAnimation(const std::string& filename, int set);
+        void LoadAnimation(const std::string& filename, std::size_t set);
+        void SaveAnimation(const std::string& filename, std::size_t set);
         void LoadAll(const std::string& filename);
         void SaveAll(const std::string& filename);
         void LoadAllFromStream(std::istream& stream);
@@ -65,7 +65,7 @@ namespace viscom::enh {
         /** Holds all names. */
         std::vector<std::string> names_;
         /** Holds animations by name. */
-        std::map<std::string, std::pair<unsigned int, T*>> animationsByName_;
+        std::map<std::string, std::pair<std::size_t, T*>> animationsByName_;
         /** Holds the currently edited animation id. */
         int currentAnimation_ = -1;
         /** Holds the save/load directory. */
@@ -106,12 +106,12 @@ namespace viscom::enh {
         const OrbitAnimationManager& GetOrbits() const { return orbAnimations_; }
         OrbitAnimationManager& GetOrbits() { return orbAnimations_; }
 
-        const WayPointAnimation& GetWaypoint(unsigned int id) const { return wpAnimations_[id]; }
-        WayPointAnimation& GetWaypoint(unsigned int id) { return wpAnimations_[id]; }
-        const RotationAnimation& GetRotation(unsigned int id) const { return rotAnimations_[id]; }
-        RotationAnimation& GetRotation(unsigned int id) { return rotAnimations_[id]; }
-        const OrbitAnimation& GetOrbit(unsigned int id) const { return orbAnimations_[id]; }
-        OrbitAnimation& GetOrbit(unsigned int id) { return orbAnimations_[id]; }
+        const WayPointAnimation& GetWaypoint(std::size_t id) const { return wpAnimations_[id]; }
+        WayPointAnimation& GetWaypoint(std::size_t id) { return wpAnimations_[id]; }
+        const RotationAnimation& GetRotation(std::size_t id) const { return rotAnimations_[id]; }
+        RotationAnimation& GetRotation(std::size_t id) { return rotAnimations_[id]; }
+        const OrbitAnimation& GetOrbit(std::size_t id) const { return orbAnimations_[id]; }
+        OrbitAnimation& GetOrbit(std::size_t id) { return orbAnimations_[id]; }
 
         const WayPointAnimation& GetCurrentWaypoint() const { return wpAnimations_.GetCurrent(); }
         WayPointAnimation& GetCurrentWaypoint() { return wpAnimations_.GetCurrent(); }
