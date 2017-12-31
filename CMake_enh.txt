@@ -4,11 +4,16 @@ option(OPTION_BUILD_EXAMPLES OFF)
 option(OPTION_BUILD_GPU_TESTS OFF)
 option(OPTION_BUILD_TESTS OFF)
 option(OPTION_BUILD_TOOLS OFF)
+
+# this should be removed as soon as glbinding is updated.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING")
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/fwenh/extern/glbinding)
 
 if(CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_CONFIGURATION_TYPES Release Debug DebugOpenGLCalls)
     set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} CACHE STRING "Append user-defined configuration to list of configurations to make it usable in Visual Studio" FORCE)
+    set_property(GLOBAL PROPERTY DEBUG_CONFIGURATIONS "Debug;DebugOpenGLCalls")
 endif()
 
 set(VISCOM_DO_PROFILING ON CACHE BOOL "Turn on profiling.")
@@ -33,7 +38,7 @@ list(APPEND ENH_INCLUDE_DIRS
     extern/fwenh/extern/cereal/include)
 
 list(APPEND ENH_LIBS glbinding)
-list(APPEND COMPILE_TIME_DEFS $<$<CONFIG:DebugOpenGLCalls>:VISCOM_OGL_DEBUG_MSGS> GLFW_INCLUDE_NONE)
+list(APPEND COMPILE_TIME_DEFS $<$<CONFIG:DebugOpenGLCalls>:VISCOM_OGL_DEBUG_MSGS> GLFW_INCLUDE_NONE _SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 
 if (VISCOM_DO_PROFILING)
     list(APPEND COMPILE_TIME_DEFS ENABLE_PROFILING)

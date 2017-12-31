@@ -76,7 +76,7 @@ namespace viscom::enh {
         if (showSelectEditAnimationPopup) ImGui::OpenPopup(("Select Edit " + name).c_str());
         if (ImGui::BeginPopupModal(("Select Edit " + name).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             auto rbChange = ImGui::RadioButton("None", &currentAnimation_, -1);
-            for (const auto& set : animationsByName_) if (ImGui::RadioButton(set.first.c_str(), &currentAnimation_, set.second.first)) rbChange = true;
+            for (const auto& set : animationsByName_) if (ImGui::RadioButton(set.first.c_str(), &currentAnimation_, static_cast<int>(set.second.first))) rbChange = true;
             if (rbChange) editor_.SetCurrentEdited(currentAnimation_ == -1 ? nullptr : &animations_[static_cast<std::size_t>(currentAnimation_)]);
             if (ImGui::Button("Close")) {
                 ImGui::CloseCurrentPopup();
@@ -87,7 +87,7 @@ namespace viscom::enh {
 
         if (showSelectLoadPopup) ImGui::OpenPopup(("Select Load " + name).c_str());
         if (ImGui::BeginPopupModal(("Select Load " + name).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            for (const auto& set : animationsByName_) ImGui::RadioButton(set.first.c_str(), &selectedSet, set.second.first);
+            for (const auto& set : animationsByName_) ImGui::RadioButton(set.first.c_str(), &selectedSet, static_cast<int>(set.second.first));
             if (ImGui::Button("Load")) {
                 showLoadSelectedPopup = true;
                 ImGui::CloseCurrentPopup();
@@ -104,7 +104,7 @@ namespace viscom::enh {
 
         if (showSelectSavePopup) ImGui::OpenPopup(("Select Save " + name).c_str());
         if (ImGui::BeginPopupModal(("Select Save " + name).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            for (const auto& set : animationsByName_) ImGui::RadioButton(set.first.c_str(), &selectedSet, set.second.first);
+            for (const auto& set : animationsByName_) ImGui::RadioButton(set.first.c_str(), &selectedSet, static_cast<int>(set.second.first));
             if (ImGui::Button("Edit")) {
                 showSaveSelectedPopup = true;
                 ImGui::CloseCurrentPopup();

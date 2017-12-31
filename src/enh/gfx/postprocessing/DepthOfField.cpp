@@ -163,7 +163,7 @@ namespace viscom::enh {
 
     float DepthOfField::CalculateMaxCoCRadius(const CameraHelper& cam) const
     {
-        auto maxR = glm::max(CalculateCoCRadius(cam, cam.GetNearZ()), CalculateCoCRadius(cam, cam.GetFarZ()));
+        auto maxR = glm::max(CalculateCoCRadius(cam, cam.GetNearPlane()), CalculateCoCRadius(cam, cam.GetFarPlane()));
         return glm::ceil(glm::min(sourceRTSize_.y * maxR, sourceRTSize_.x * 0.02f));
     }
 }
