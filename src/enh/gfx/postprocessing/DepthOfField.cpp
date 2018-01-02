@@ -11,14 +11,26 @@
 #include "enh/gfx/gl/GLTexture.h"
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
+#include "core/gfx/FrameBuffer.h"
 
 namespace viscom::enh {
 
     DepthOfField::DepthOfField(const glm::ivec2 sourceSize, ApplicationNodeBase* app) :
+        cocQuad_{ "dof/coc.frag", app },
+        cocUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "depthTex", "..." }) },
+        downsampleQuad_{ "dof/downsample.frag", app },
+        downsampleUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocFullTex", "..." }) },
+        nearCoCBlurQuad_{ "dof/nearCoCBlur.frag", app },
+        nearCoCBlurUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "cocSmallTex", "..." }) },
+        computationQuad_{ "dof/computation.frag", app },
+        computationUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "colorFarTex", "cocTex", "cocTexNearBlurred", "..." }) },
+        fillQuad_{ "dof/fill.frag", app },
+        fillUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "cocSmallTex", "cocTexNearBlurred", "nearField", "farField", "..." }) },
+        combineQuad_{ "dof/combine.frag", app },
+        combineUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocFullTex", "cocSmallTex", "cocTexNearBlurred", "nearFieldFilled", "farFieldFilled", "..." }) },
         cocProgram_(app->GetGPUProgramManager().GetResource("dof/coc", std::vector<std::string>{ "dof/coc.cp" })),
-        cocUniformIds_(cocProgram_->GetUniformLocations({ "colorTex", "depthTex", "targetTex", "focusZ", "scale", "clipInfo" })),
         combineProgram_(app->GetGPUProgramManager().GetResource("dof/combineDoF", std::vector<std::string>{ "dof/combineDoF.cp" })),
-        combineUniformIds_(combineProgram_->GetUniformLocations({ "cocTex", "sourceFrontTex", "sourceBackTex", "targetTex" })),
+        // combineUniformIds_(combineProgram_->GetUniformLocations({ "cocTex", "sourceFrontTex", "sourceBackTex", "targetTex" })),
         hBlurProgram_(app->GetGPUProgramManager().GetResource("dof/blurDoF_H_" + std::to_string(RT_SIZE_FACTOR),
             std::vector<std::string>{ "dof/blurDoF.cp" },
             std::vector<std::string>{ "HORIZONTAL", "SIZE_FACTOR " + std::to_string(RT_SIZE_FACTOR) })),
@@ -32,7 +44,17 @@ namespace viscom::enh {
         params_.focusZ_ = 2.3f;
         params_.apertureRadius_ = 0.001f;
 
-        Resize(sourceSize);
+        FrameBufferDescriptor fullResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) } }, {} };
+        fullResRT_ = std::make_unique<FrameBuffer>(sourceSize.x, sourceSize.y, fullResRTDesc);
+
+        FrameBufferDescriptor lowResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) },
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_R32F) } }, {} };
+        lowResRT_ = std::make_unique<FrameBuffer>(sourceSize.x / 2, sourceSize.y / 2, lowResRTDesc);
+        // Resize(sourceSize);
     }
 
     DepthOfField::~DepthOfField() = default;
@@ -41,8 +63,9 @@ namespace viscom::enh {
     {
         if (ImGui::TreeNode("DepthOfField Parameters"))
         {
-            ImGui::InputFloat("DoF Focus", &params_.focusZ_, 0.005f);
+            ImGui::InputFloat("Focus Plane", &params_.focusZ_, 0.005f);
             ImGui::InputFloat("Aperture Radius", &params_.apertureRadius_, 0.00001f);
+            ImGui::InputFloat("f-Stops", &params_.fStops_, 2.2f);
             ImGui::TreePop();
         }
     }
@@ -134,14 +157,19 @@ namespace viscom::enh {
     void DepthOfField::Resize(const glm::uvec2& screenSize)
     {
         sourceRTSize_ = screenSize;
-        TextureDescriptor texDesc{ 16, gl::GL_RGBA32F, gl::GL_RGBA, gl::GL_FLOAT };
-        glm::uvec2 size(screenSize.x, screenSize.y);
-        cocRT_ = std::make_unique<viscom::enh::GLTexture>(size.x, size.y, texDesc, nullptr);
 
-        blurRTs_[0][0] = std::make_unique<viscom::enh::GLTexture>(size.x / RT_SIZE_FACTOR, size.y, texDesc, nullptr);
-        blurRTs_[0][1] = std::make_unique<viscom::enh::GLTexture>(size.x / RT_SIZE_FACTOR, size.y, texDesc, nullptr);
-        blurRTs_[1][0] = std::make_unique<viscom::enh::GLTexture>(size.x / RT_SIZE_FACTOR, size.y / RT_SIZE_FACTOR, texDesc, nullptr);
-        blurRTs_[1][1] = std::make_unique<viscom::enh::GLTexture>(size.x / RT_SIZE_FACTOR, size.y / RT_SIZE_FACTOR, texDesc, nullptr);
+        fullResRT_->Resize(sourceRTSize_.x, sourceRTSize_.y);
+        fullResRT_->Resize(sourceRTSize_.x / 2, sourceRTSize_.y / 2);
+
+
+        TextureDescriptor texDesc{ 12, gl::GL_RGB32F, gl::GL_RGB, gl::GL_FLOAT };
+        // glm::uvec2 size(screenSize.x, screenSize.y);
+        cocRT_ = std::make_unique<viscom::enh::GLTexture>(screenSize.x, screenSize.y, texDesc, nullptr);
+
+        blurRTs_[0][0] = std::make_unique<viscom::enh::GLTexture>(screenSize.x / RT_SIZE_FACTOR, screenSize.y, texDesc, nullptr);
+        blurRTs_[0][1] = std::make_unique<viscom::enh::GLTexture>(screenSize.x / RT_SIZE_FACTOR, screenSize.y, texDesc, nullptr);
+        blurRTs_[1][0] = std::make_unique<viscom::enh::GLTexture>(screenSize.x / RT_SIZE_FACTOR, screenSize.y / RT_SIZE_FACTOR, texDesc, nullptr);
+        blurRTs_[1][1] = std::make_unique<viscom::enh::GLTexture>(screenSize.x / RT_SIZE_FACTOR, screenSize.y / RT_SIZE_FACTOR, texDesc, nullptr);
     }
 
     float DepthOfField::CalculateFocalLength(const CameraHelper& cam) const
