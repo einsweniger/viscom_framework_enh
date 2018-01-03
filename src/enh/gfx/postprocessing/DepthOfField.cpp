@@ -17,9 +17,11 @@ namespace viscom::enh {
 
     DepthOfField::DepthOfField(const glm::ivec2 sourceSize, ApplicationNodeBase* app) :
         cocQuad_{ "dof/coc.frag", app },
-        cocUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "depthTex", "..." }) },
+        cocUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "depthTex", "projParams", "focusZ", "apertureRadius", "fStops", "cocMax" }) },
         downsampleQuad_{ "dof/downsample.frag", app },
-        downsampleUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocFullTex", "..." }) },
+        downsampleUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "depthG" }) },
+        tileMinMaxCoCQuad_{ "dof/tileMinMaxCoC.frag", app },
+        tileMinMaxCoCUniformIds_{ tileMinMaxCoCQuad_.GetGPUProgram()->GetUniformLocations({ "cocHalfTex" }) },
         nearCoCBlurQuad_{ "dof/nearCoCBlur.frag", app },
         nearCoCBlurUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "cocSmallTex", "..." }) },
         computationQuad_{ "dof/computation.frag", app },

@@ -5,12 +5,6 @@ uniform sampler2D cocTex;
 
 uniform vec2 depthG;
 
-uniform vec2 projParams;
-uniform float focusZ;
-uniform float apertureRadius;
-uniform float fStops;
-uniform vec2 cocMax;
-
 in vec2 texCoord;
 
 layout(location = 0) out vec4 colorHalf;

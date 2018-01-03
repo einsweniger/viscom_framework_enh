@@ -8,13 +8,13 @@
 
 #pragma once
 
-#include <array>
-#include <memory>
-#include <glm/vec2.hpp>
-#include <glbinding/gl/gl.h>
-#include <cereal/cereal.hpp>
-#include <cereal/access.hpp>
 #include "core/gfx/FullscreenQuad.h"
+#include <array>
+#include <cereal/access.hpp>
+#include <cereal/cereal.hpp>
+#include <glbinding/gl/gl.h>
+#include <glm/vec2.hpp>
+#include <memory>
 
 namespace viscom {
     class GPUProgram;
@@ -82,6 +82,10 @@ namespace viscom::enh {
         FullscreenQuad downsampleQuad_;
         /** Holds the down sampling program uniform ids. */
         std::vector<gl::GLint> downsampleUniformIds_;
+        /** Holds the quad for calculating the tile min/max CoC. */
+        FullscreenQuad tileMinMaxCoCQuad_;
+        /** Holds the tile min/max CoC program uniform ids. */
+        std::vector<gl::GLint> tileMinMaxCoCUniformIds_;
         /** Holds the quad for calculating the CoC. */
         FullscreenQuad nearCoCBlurQuad_;
         /** Holds the near CoC blur program uniform ids. */
