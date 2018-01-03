@@ -10,12 +10,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPREC
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/fwenh/extern/glbinding)
 
-if(CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_CONFIGURATION_TYPES Release Debug DebugOpenGLCalls)
-    set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} CACHE STRING "Append user-defined configuration to list of configurations to make it usable in Visual Studio" FORCE)
-    set_property(GLOBAL PROPERTY DEBUG_CONFIGURATIONS "Debug;DebugOpenGLCalls")
-endif()
-
 set(VISCOM_DO_PROFILING ON CACHE BOOL "Turn on profiling.")
 
 file(GLOB_RECURSE SHADER_FILES_ENH ${PROJECT_SOURCE_DIR}/extern/fwenh/resources/shader/*.*)

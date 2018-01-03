@@ -7,11 +7,11 @@
  */
 
 #include "DepthOfField.h"
+#include "core/gfx/FrameBuffer.h"
 #include "enh/ApplicationNodeBase.h"
 #include "enh/gfx/gl/GLTexture.h"
-#include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
-#include "core/gfx/FrameBuffer.h"
+#include <imgui.h>
 
 namespace viscom::enh {
 
@@ -174,7 +174,7 @@ namespace viscom::enh {
 
     float DepthOfField::CalculateFocalLength(const CameraHelper& cam) const
     {
-        const auto scale = 2.0f * glm::tan(cam.GetFOV() * 0.5f);
+        const auto scale = 2.0f;// *glm::tan(cam.GetFOV() * 0.5f);
         return 1.0f / scale;
         // return static_cast<float>(sourceRTSize.y) / scale;
     }

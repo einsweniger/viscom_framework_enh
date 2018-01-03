@@ -7,10 +7,11 @@
  */
 
 #include "GLTexture.h"
-#include <stb_image.h>
-#include <glm/gtc/type_ptr.hpp>
-#include <stb_image_write.h>
 #include "core/main.h"
+#include <glm/gtc/type_ptr.hpp>
+#include <stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 
 namespace viscom::enh {
 
