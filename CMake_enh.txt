@@ -17,13 +17,19 @@ file(GLOB_RECURSE SRC_FILES_ENH
     ${PROJECT_SOURCE_DIR}/extern/fwenh/src/enh/*.h
     ${PROJECT_SOURCE_DIR}/extern/fwenh/src/enh/*.cpp
     ${PROJECT_SOURCE_DIR}/extern/fwenh/src/enh/*.inl)
-source_group("shader\\enhanced" FILES ${SHADER_FILES_ENH})
 
 foreach(f ${SRC_FILES_ENH})
     file(RELATIVE_PATH SRCGR ${PROJECT_SOURCE_DIR}/extern/fwenh ${f})
     string(REGEX REPLACE "(.*)(/[^/]*)$" "\\1" SRCGR ${SRCGR})
     string(REPLACE / \\ SRCGR ${SRCGR})
     source_group("${SRCGR}" FILES ${f})
+endforeach()
+
+foreach(f ${SHADER_FILES_ENH})
+    file(RELATIVE_PATH SRCGR ${PROJECT_SOURCE_DIR}/extern/fwenh/resources/shader ${f})
+    string(REGEX REPLACE "(.*)(/[^/]*)$" "\\1" SRCGR ${SRCGR})
+    string(REPLACE / \\ SRCGR ${SRCGR})
+    source_group("shader\\enhanced\\${SRCGR}" FILES ${f})
 endforeach()
 
 list(APPEND ENH_INCLUDE_DIRS
