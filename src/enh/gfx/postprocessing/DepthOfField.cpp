@@ -19,9 +19,11 @@ namespace viscom::enh {
         cocQuad_{ "dof/coc.frag", app },
         cocUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "depthTex", "projParams", "focusZ", "apertureRadius", "fStops", "cocMax" }) },
         downsampleQuad_{ "dof/downsample.frag", app },
-        downsampleUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "depthG" }) },
-        tileMinMaxCoCQuad_{ "dof/tileMinMaxCoC.frag", app },
-        tileMinMaxCoCUniformIds_{ tileMinMaxCoCQuad_.GetGPUProgram()->GetUniformLocations({ "cocHalfTex" }) },
+        downsampleUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex" }) },
+        tileMinMaxXCoCQuad_{ "dof/tileMinMaxXCoC.frag", "dof/tileMinMaxCoC.frag", std::vector<std::string>{ "HORIZONTAL" }, app },
+        tileMinMaxXCoCUniformIds_{ tileMinMaxXCoCQuad_.GetGPUProgram()->GetUniformLocations({ "cocTex" }) },
+        tileMinMaxYCoCQuad_{ "dof/tileMinMaxYCoC.frag", "dof/tileMinMaxCoC.frag", std::vector<std::string>{ "VERTICAL" }, app },
+        tileMinMaxYCoCUniformIds_{ tileMinMaxYCoCQuad_.GetGPUProgram()->GetUniformLocations({ "cocTex" }) },
         nearCoCBlurQuad_{ "dof/nearCoCBlur.frag", app },
         nearCoCBlurUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "cocSmallTex", "..." }) },
         computationQuad_{ "dof/computation.frag", app },
@@ -46,17 +48,23 @@ namespace viscom::enh {
         params_.focusZ_ = 2.3f;
         params_.apertureRadius_ = 0.001f;
 
-        FrameBufferDescriptor fullResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) } }, {} };
+        FrameBufferDescriptor fullResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) } }, {} }; // CoC near/far/depth
         fullResRT_ = std::make_unique<FrameBuffer>(sourceSize.x, sourceSize.y, fullResRTDesc);
 
         FrameBufferDescriptor lowResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // color
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // colorMulCoCFar
             FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) },
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // CoC near/far
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // CoC near/far ping
+            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // CoC near/far pong
             FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_R32F) } }, {} };
         lowResRT_ = std::make_unique<FrameBuffer>(sourceSize.x / 2, sourceSize.y / 2, lowResRTDesc);
         // Resize(sourceSize);
+
+        downsamplePassDrawBuffers_ = { 0, 1, 3 };
+        tileXPassDrawBuffers_ = { 4 };
+        tileYPassDrawBuffers_ = { 5 };
     }
 
     DepthOfField::~DepthOfField() = default;
@@ -72,8 +80,68 @@ namespace viscom::enh {
         }
     }
 
-    void DepthOfField::ApplyEffect(const CameraHelper& cam, const GLTexture* color, const GLTexture* depth, const GLTexture* targetRT)
+    void DepthOfField::ApplyEffect(const CameraHelper& cam, const GLuint colorTex, const GLuint depthTex, const GLTexture* targetRT)
     {
+        // TODO: calculate max CoC (use near and far plane z values)
+
+        // CoC pass
+        fullResRT_->DrawToFBO([this, depthTex] {
+            gl::glUseProgram(cocQuad_.GetGPUProgram()->getProgramId());
+
+            gl::glActiveTexture(gl::GL_TEXTURE0);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, depthTex);
+
+            gl::glUniform1i(cocUniformIds_[0], 0);
+            // gl::glUniform2fv(cocUniformIds_[1], glm::value_ptr());
+            gl::glUniform1f(cocUniformIds_[2], params_.focusZ_);
+            gl::glUniform1f(cocUniformIds_[3], params_.apertureRadius_);
+            gl::glUniform1f(cocUniformIds_[4], params_.fStops_);
+            // gl::glUniform2fv(cocUniformIds_[5], glm::value_ptr());
+            cocQuad_.Draw();
+        });
+
+        // DownSample pass
+        lowResRT_->DrawToFBO(downsamplePassDrawBuffers_, [this, colorTex] {
+            gl::glUseProgram(downsampleQuad_.GetGPUProgram()->getProgramId());
+
+            gl::glActiveTexture(gl::GL_TEXTURE0);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, colorTex);
+            gl::glActiveTexture(gl::GL_TEXTURE1);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, fullResRT_->GetTextures()[0]);
+
+            gl::glUniform1i(downsampleUniformIds_[0], 0);
+            gl::glUniform1i(downsampleUniformIds_[1], 1);
+            downsampleQuad_.Draw();
+        });
+
+        // TileX min max pass
+        lowResRT_->DrawToFBO(tileXPassDrawBuffers_, [this] {
+            gl::glUseProgram(tileMinMaxXCoCQuad_.GetGPUProgram()->getProgramId());
+
+            gl::glActiveTexture(gl::GL_TEXTURE0);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[3]);
+
+            gl::glUniform1i(tileMinMaxXCoCUniformIds_[0], 0);
+            tileMinMaxXCoCQuad_.Draw();
+        });
+
+        // TileY min max pass
+        lowResRT_->DrawToFBO(tileYPassDrawBuffers_, [this] {
+            gl::glUseProgram(tileMinMaxYCoCQuad_.GetGPUProgram()->getProgramId());
+
+            gl::glActiveTexture(gl::GL_TEXTURE0);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[4]);
+
+            gl::glUniform1i(tileMinMaxYCoCUniformIds_[0], 0);
+            tileMinMaxYCoCQuad_.Draw();
+        });
+
+        // blur near x pass
+        // blur near y pass
+        // computation pass
+        // fill pass
+        // combine pass
+
         const glm::vec2 groupSize{ 32.0f, 16.0f };
 
         auto targetSize = glm::vec2(sourceRTSize_);
@@ -98,8 +166,8 @@ namespace viscom::enh {
         gl::glUniform1f(cocUniformIds_[3], params_.focusZ_);
         gl::glUniform1f(cocUniformIds_[4], scale);
         gl::glUniform3fv(cocUniformIds_[5], 1, glm::value_ptr(clipInfo));
-        color->ActivateTexture(gl::GL_TEXTURE0);
-        depth->ActivateTexture(gl::GL_TEXTURE1);
+        // color->ActivateTexture(gl::GL_TEXTURE0);
+        // depth->ActivateTexture(gl::GL_TEXTURE1);
         cocRT_->ActivateImage(0, 0, gl::GL_WRITE_ONLY);
         gl::glDispatchCompute(numGroups.x, numGroups.y, 1);
         gl::glMemoryBarrier(gl::GL_ALL_BARRIER_BITS);

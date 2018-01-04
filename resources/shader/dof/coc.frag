@@ -9,7 +9,7 @@ uniform vec2 cocMax;
 
 in vec2 texCoord;
 
-layout(location = 0) out vec4 cocResult;
+layout(location = 0) out vec4 cocResult; // 3 channels
 
 float depthNDCToView(float depthNCD)
 {
@@ -18,7 +18,8 @@ float depthNDCToView(float depthNCD)
 
 void main()
 {
-    float depthNDC = texture(depthTex, texCoord).x;
+    ivec2 iTexCoord = ivec2(texCoord * vec2(textureSize(depthTex, 0)));
+    float depthNDC = texelFetch(depthTex, iTexCoord, 0).x;
     float depth = -depthNDCToView(depthNDC);
 
     float focalLength = fStops * 2.0f * apertureRadius;

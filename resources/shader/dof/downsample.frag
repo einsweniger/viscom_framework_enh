@@ -3,23 +3,21 @@
 uniform sampler2D colorTex;
 uniform sampler2D cocTex;
 
-uniform vec2 depthG;
-
 in vec2 texCoord;
 
-layout(location = 0) out vec4 colorHalf;
-layout(location = 1) out vec4 colorMulCoCFarHalf;
-layout(location = 2) out vec4 cocHalf;
+layout(location = 0) out vec4 colorHalf; // 3 channels
+layout(location = 1) out vec4 colorMulCoCFarHalf; // 3 channels
+layout(location = 2) out vec4 cocHalf; // 2 channels
 
 void main()
 {
-    vec2 pixelSize = 1.0f / vec2(textureSize(cocTex, 0));
+    ivec2 iTexCoord = ivec2(texCoord * vec2(textureSize(colorTex, 0)));
 
-    vec2 texCoordA[4];
-    texCoordA[0] = texCoord + vec2(-0.25f, -0.25f)*pixelSize;
-    texCoordA[1] = texCoord + vec2( 0.25f, -0.25f)*pixelSize;
-    texCoordA[2] = texCoord + vec2(-0.25f,  0.25f)*pixelSize;
-    texCoordA[3] = texCoord + vec2( 0.25f,  0.25f)*pixelSize;
+    ivec2 iTexCoordA[4];
+    iTexCoordA[0] = iTexCoord - ivec2(-1, -1);
+    iTexCoordA[1] = iTexCoord - ivec2( 0, -1);
+    iTexCoordA[2] = iTexCoord - ivec2(-1,  0);
+    iTexCoordA[3] = iTexCoord - ivec2( 0,  0);
 
     vec3 colorA[4];
     float depthA[4];
@@ -27,8 +25,8 @@ void main()
     float depthMin = 1000000000.0f;
     cocHalf = vec4(0.0f, 1000000000.0f, 0.0f, 0.0f);
     for (int i = 0; i < 3; ++i) {
-        colorA[i] = texture(colorTex, texCoordA[i]).rgb;
-        vec3 coc = texture(cocTex, texCoordA[i]).rgb;
+        colorA[i] = texelFetch(colorTex, iTexCoordA[i], 0).rgb;
+        vec3 coc = texelFetch(cocTex, iTexCoordA[i], 0).rgb;
         depthA[i] = coc.z;
         cocFarA[i] = coc.y;
         depthMin = min(depthMin, depthA[i]);

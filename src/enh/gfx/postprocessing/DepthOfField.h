@@ -47,7 +47,7 @@ namespace viscom::enh {
         ~DepthOfField();
 
         void RenderParameterSliders();
-        void ApplyEffect(const CameraHelper& cam, const GLTexture* color, const GLTexture* depth, const GLTexture* targetRT);
+        void ApplyEffect(const CameraHelper& cam, const GLuint color, const GLuint depth, const GLTexture* targetRT);
         void Resize(const glm::uvec2& screenSize);
 
         template<class Archive> void SaveParameters(Archive& ar, const std::uint32_t) const {
@@ -82,10 +82,15 @@ namespace viscom::enh {
         FullscreenQuad downsampleQuad_;
         /** Holds the down sampling program uniform ids. */
         std::vector<gl::GLint> downsampleUniformIds_;
-        /** Holds the quad for calculating the tile min/max CoC. */
-        FullscreenQuad tileMinMaxCoCQuad_;
-        /** Holds the tile min/max CoC program uniform ids. */
-        std::vector<gl::GLint> tileMinMaxCoCUniformIds_;
+        /** Holds the quad for calculating the tile horizontal min/max CoC. */
+        FullscreenQuad tileMinMaxXCoCQuad_;
+        /** Holds the tile horizontal min/max CoC program uniform ids. */
+        std::vector<gl::GLint> tileMinMaxXCoCUniformIds_;
+        /** Holds the quad for calculating the tile vertical min/max CoC. */
+        FullscreenQuad tileMinMaxYCoCQuad_;
+        /** Holds the tile vertical min/max CoC program uniform ids. */
+        std::vector<gl::GLint> tileMinMaxYCoCUniformIds_;
+
         /** Holds the quad for calculating the CoC. */
         FullscreenQuad nearCoCBlurQuad_;
         /** Holds the near CoC blur program uniform ids. */
@@ -103,6 +108,12 @@ namespace viscom::enh {
         /** Holds the combine program uniform ids. */
         std::vector<gl::GLint> combineUniformIds_;
 
+        /** The draw buffers used in the down sample pass. */
+        std::vector<std::size_t> downsamplePassDrawBuffers_;
+        /** The draw buffers used in the tileX pass. */
+        std::vector<std::size_t> tileXPassDrawBuffers_;
+        /** The draw buffers used in the tileY pass. */
+        std::vector<std::size_t> tileYPassDrawBuffers_;
 
         /** Holds the render target for storing color information with circle of confusion. */
         std::unique_ptr<GLTexture> cocRT_;
