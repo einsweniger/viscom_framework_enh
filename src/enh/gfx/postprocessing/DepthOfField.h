@@ -27,16 +27,28 @@ namespace viscom::enh {
     class ApplicationNodeBase;
     class GLTexture;
 
+    namespace dof {
+        struct DoFPassParams;
+    }
+
     struct DOFParams
     {
         float focusZ_;
-        float apertureRadius_;
+        float imageDistance_;
         float fStops_;
+        float fStopsMin_;
+        float fStopsMax_;
+        int bokehShape_;
+        float rotateBokehMax_;
 
         template<class Archive> void serialize(Archive& ar, const std::uint32_t) {
             ar(cereal::make_nvp("focusZ", focusZ_),
-                cereal::make_nvp("apertureRadius", apertureRadius_),
-                cereal::make_nvp("fStops", fStops_));
+                cereal::make_nvp("imageDistance", imageDistance_),
+                cereal::make_nvp("fStops", fStops_),
+                cereal::make_nvp("fStopsMin", fStopsMin_),
+                cereal::make_nvp("fStopsMax", fStopsMax_),
+                cereal::make_nvp("bokehShape", bokehShape_),
+                cereal::make_nvp("rotateBokehMax", rotateBokehMax_));
         }
     };
 
@@ -47,7 +59,7 @@ namespace viscom::enh {
         ~DepthOfField();
 
         void RenderParameterSliders();
-        void ApplyEffect(const CameraHelper& cam, const GLuint color, const GLuint depth, const GLTexture* targetRT);
+        void ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const GLTexture* targetRT);
         void Resize(const glm::uvec2& screenSize);
 
         template<class Archive> void SaveParameters(Archive& ar, const std::uint32_t) const {
@@ -62,9 +74,16 @@ namespace viscom::enh {
         static constexpr unsigned int RT_SIZE_FACTOR = 1;
         using FrontBackTargets = std::array<std::unique_ptr<GLTexture>, 2>;
 
-        float CalculateFocalLength(const CameraHelper& cam) const;
-        float CalculateCoCRadius(const CameraHelper& cam, float z) const;
-        float CalculateMaxCoCRadius(const CameraHelper& cam) const;
+        void RecalcBokeh();
+        void CoCPass(const dof::DoFPassParams& passParams);
+        void DownsamplePass(const dof::DoFPassParams& passParams);
+        void TileMinMaxPass(std::size_t pass, std::size_t sourceTex);
+        void NearCoCBlurPass(std::size_t pass, std::size_t sourceTex);
+        void ComputeDoFPass();
+
+        // float CalculateFocalLength(const CameraHelper& cam) const;
+        // float CalculateCoCRadius(const CameraHelper& cam, float z) const;
+        // glm::vec2 CalculateMaxCoCRadius(const CameraHelper& cam) const;
 
         /** Holds the frame buffer with the full resolution render targets. */
         std::unique_ptr<FrameBuffer> fullResRT_;
@@ -73,32 +92,32 @@ namespace viscom::enh {
 
         /** Holds the bloom parameters. */
         DOFParams params_;
+        /** Holds the filter taps for the bokeh shape. */
+        std::array<glm::vec2, 48> bokehTaps_;
+        /** Holds whether the bokeh taps need recalculation. */
+        bool recalcBokeh_ = true;
 
         /** Holds the quad for calculating the CoC. */
         FullscreenQuad cocQuad_;
         /** Holds the CoC program uniform ids. */
         std::vector<gl::GLint> cocUniformIds_;
-        /** Holds the quad for calculating the CoC. */
+        /** Holds the quad for down sampling the textures. */
         FullscreenQuad downsampleQuad_;
         /** Holds the down sampling program uniform ids. */
         std::vector<gl::GLint> downsampleUniformIds_;
-        /** Holds the quad for calculating the tile horizontal min/max CoC. */
-        FullscreenQuad tileMinMaxXCoCQuad_;
-        /** Holds the tile horizontal min/max CoC program uniform ids. */
-        std::vector<gl::GLint> tileMinMaxXCoCUniformIds_;
-        /** Holds the quad for calculating the tile vertical min/max CoC. */
-        FullscreenQuad tileMinMaxYCoCQuad_;
-        /** Holds the tile vertical min/max CoC program uniform ids. */
-        std::vector<gl::GLint> tileMinMaxYCoCUniformIds_;
+        /** Holds the quad for calculating the tile horizontal and vertical min/max CoC. */
+        std::array<FullscreenQuad, 2> tileMinMaxCoCQuad_;
+        /** Holds the tile horizontal and vertical min/max CoC program uniform ids. */
+        std::array<std::vector<gl::GLint>, 2> tileMinMaxCoCUniformIds_;
 
-        /** Holds the quad for calculating the CoC. */
-        FullscreenQuad nearCoCBlurQuad_;
+        /** Holds the quad for blurring the near field CoC. */
+        std::array<FullscreenQuad, 2> nearCoCBlurQuad_;
         /** Holds the near CoC blur program uniform ids. */
-        std::vector<gl::GLint> nearCoCBlurUniformIds_;
-        /** Holds the quad for calculating the CoC. */
-        FullscreenQuad computationQuad_;
+        std::array<std::vector<gl::GLint>, 2> nearCoCBlurUniformIds_;
+        /** Holds the quad for calculating DoF effect. */
+        FullscreenQuad dofQuad_;
         /** Holds the computation program uniform ids. */
-        std::vector<gl::GLint> computationUniformIds_;
+        std::vector<gl::GLint> dofUniformIds_;
         /** Holds the quad for calculating the CoC. */
         FullscreenQuad fillQuad_;
         /** Holds the fill program uniform ids. */
@@ -110,10 +129,10 @@ namespace viscom::enh {
 
         /** The draw buffers used in the down sample pass. */
         std::vector<std::size_t> downsamplePassDrawBuffers_;
-        /** The draw buffers used in the tileX pass. */
-        std::vector<std::size_t> tileXPassDrawBuffers_;
-        /** The draw buffers used in the tileY pass. */
-        std::vector<std::size_t> tileYPassDrawBuffers_;
+        /** The draw buffers used in the tile passes. */
+        std::array<std::vector<std::size_t>, 2> tilePassDrawBuffers_;
+        /** The draw buffers used in the compute dof pass. */
+        std::vector<std::size_t> dofPassDrawBuffers_;
 
         /** Holds the render target for storing color information with circle of confusion. */
         std::unique_ptr<GLTexture> cocRT_;
