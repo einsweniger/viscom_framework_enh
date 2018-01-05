@@ -80,6 +80,8 @@ namespace viscom::enh {
         void TileMinMaxPass(std::size_t pass, std::size_t sourceTex);
         void NearCoCBlurPass(std::size_t pass, std::size_t sourceTex);
         void ComputeDoFPass();
+        void FillPass();
+        void CompositePass();
 
         // float CalculateFocalLength(const CameraHelper& cam) const;
         // float CalculateCoCRadius(const CameraHelper& cam, float z) const;
@@ -109,7 +111,6 @@ namespace viscom::enh {
         std::array<FullscreenQuad, 2> tileMinMaxCoCQuad_;
         /** Holds the tile horizontal and vertical min/max CoC program uniform ids. */
         std::array<std::vector<gl::GLint>, 2> tileMinMaxCoCUniformIds_;
-
         /** Holds the quad for blurring the near field CoC. */
         std::array<FullscreenQuad, 2> nearCoCBlurQuad_;
         /** Holds the near CoC blur program uniform ids. */
@@ -122,10 +123,10 @@ namespace viscom::enh {
         FullscreenQuad fillQuad_;
         /** Holds the fill program uniform ids. */
         std::vector<gl::GLint> fillUniformIds_;
-        /** Holds the quad for calculating the CoC. */
-        FullscreenQuad combineQuad_;
-        /** Holds the combine program uniform ids. */
-        std::vector<gl::GLint> combineUniformIds_;
+        /** Holds the quad for combining near and far field again. */
+        FullscreenQuad compositeQuad_;
+        /** Holds the composite program uniform ids. */
+        std::vector<gl::GLint> compositeUniformIds_;
 
         /** The draw buffers used in the down sample pass. */
         std::vector<std::size_t> downsamplePassDrawBuffers_;
@@ -133,6 +134,10 @@ namespace viscom::enh {
         std::array<std::vector<std::size_t>, 2> tilePassDrawBuffers_;
         /** The draw buffers used in the compute dof pass. */
         std::vector<std::size_t> dofPassDrawBuffers_;
+        /** The draw buffers used in the fill dof pass. */
+        std::vector<std::size_t> fillPassDrawBuffers_;
+        /** The draw buffers used in the combine dof pass. */
+        std::vector<std::size_t> combinePassDrawBuffers_;
 
         /** Holds the render target for storing color information with circle of confusion. */
         std::unique_ptr<GLTexture> cocRT_;

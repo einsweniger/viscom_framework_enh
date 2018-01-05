@@ -91,9 +91,9 @@ namespace viscom::enh {
         dofQuad_{ "dof/dof.frag", app },
         dofUniformIds_{ dofQuad_.GetGPUProgram()->GetUniformLocations({ "cocTex", "cocNearBlurTex", "colorTex", "colorMulCoCFarTex", "offsets" }) },
         fillQuad_{ "dof/fill.frag", app },
-        fillUniformIds_{ fillQuad_.GetGPUProgram()->GetUniformLocations({ "cocSmallTex", "cocTexNearBlurred", "nearField", "farField", "..." }) },
-        combineQuad_{ "dof/combine.frag", app },
-        combineUniformIds_{ combineQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocFullTex", "cocSmallTex", "cocTexNearBlurred", "nearFieldFilled", "farFieldFilled", "..." }) },
+        fillUniformIds_{ fillQuad_.GetGPUProgram()->GetUniformLocations({ "cocTex", "cocNearBlurTex", "dofNearTex", "dofFarTex" }) },
+        compositeQuad_{ "dof/composite.frag", app },
+        compositeUniformIds_{ compositeQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocFullTex", "cocSmallTex", "cocTexNearBlurred", "nearFieldFilled", "farFieldFilled", "..." }) },
         cocProgram_(app->GetGPUProgramManager().GetResource("dof/coc", std::vector<std::string>{ "dof/coc.cp" })),
         combineProgram_(app->GetGPUProgramManager().GetResource("dof/combineDoF", std::vector<std::string>{ "dof/combineDoF.cp" })),
         // combineUniformIds_(combineProgram_->GetUniformLocations({ "cocTex", "sourceFrontTex", "sourceBackTex", "targetTex" })),
@@ -118,21 +118,49 @@ namespace viscom::enh {
         FrameBufferDescriptor fullResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) } }, {} }; // CoC near/far/depth
         fullResRT_ = std::make_unique<FrameBuffer>(sourceSize.x, sourceSize.y, fullResRTDesc);
 
-        FrameBufferDescriptor lowResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // 0: color
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // 1: colorMulCoCFar
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) },
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // 3: CoC near/far
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // 4: CoC near/far ping
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // 5: CoC near/far pong
-            FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_R32F) } }, {} };
+        FrameBufferDescriptor lowResRTDesc{ {
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // 0: color / nearFieldFill
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // 1: colorMulCoCFar / farFieldFilled
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // 2: nearField
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // 3: farField
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // 4: CoC near/far
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // 5: CoC near/far ping
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) } // 6: CoC near/far pong <- final
+            }, {} };
         lowResRT_ = std::make_unique<FrameBuffer>(sourceSize.x / 2, sourceSize.y / 2, lowResRTDesc);
         // Resize(sourceSize);
 
-        downsamplePassDrawBuffers_ = { 0, 1, 3 };
-        tilePassDrawBuffers_[0] = { 4 };
-        tilePassDrawBuffers_[1] = { 5 };
-        dofPassDrawBuffers_ = {};
+        downsamplePassDrawBuffers_ = { 0, 1, 4 };
+        tilePassDrawBuffers_[0] = { 5 };
+        tilePassDrawBuffers_[1] = { 6 };
+        dofPassDrawBuffers_ = { 2, 3 };
+        fillPassDrawBuffers_ = { 0, 1 };
+        combinePassDrawBuffers_ = { };
+
+        std::array<glm::vec3, 256> hg_precalc;
+        for (std::size_t i = 0; i < hg_precalc.size(); ++i) {
+            auto x = static_cast<float>(i) / static_cast<float>(hg_precalc.size());
+            auto x2 = x * x;
+            auto x3 = x2 * x;
+
+            std::array<float, 4> w;
+            w[0] = (1.0f - (3.0f * x) + (3.0f * x2) - x3) / 6.0f;
+            w[1] = ((3.0f * x3) - (6.0f * x2) + 4.0f) / 6.0f;
+            w[2] = (1.0f + (3.0f * x) + (3.0f * x2) - (3.0f * x3)) / 6.0f;
+            w[3] = x3 / 6.0f;
+
+            hg_precalc[i].z = w[0] + w[1];
+            hg_precalc[i].x = 1.0f - (w[1] / hg_precalc[i].z) + x;
+            hg_precalc[i].y = 1.0f + (w[3] / (w[2] + w[3])) - x;
+        }
+
+        // TODO: texture (static?) in class .. maybe even in application?
+        // remove bi-cubic code from composite shader to header file.
+        TextureDescriptor texDesc{ 12, gl::GL_RGB32F, gl::GL_RGB, gl::GL_FLOAT };
+        GLTexture hgTex{ 256, texDesc };
+        hgTex.SetData(hg_precalc.data());
+        hgTex.SampleLinear();
+        hgTex.SampleWrapRepeat();
     }
 
     DepthOfField::~DepthOfField() = default;
@@ -235,9 +263,9 @@ namespace viscom::enh {
             gl::glUseProgram(dofQuad_.GetGPUProgram()->getProgramId());
 
             gl::glActiveTexture(gl::GL_TEXTURE0 + 0);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[3]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[4]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 1);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[5]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[6]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 2);
             gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[0]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 3);
@@ -250,6 +278,32 @@ namespace viscom::enh {
             gl::glUniform2fv(dofUniformIds_[4], static_cast<gl::GLsizei>(bokehTaps_.size()), reinterpret_cast<float*>(bokehTaps_.data()));
             dofQuad_.Draw();
         });
+    }
+
+    void DepthOfField::FillPass()
+    {
+        lowResRT_->DrawToFBO(fillPassDrawBuffers_, [this]() {
+            gl::glUseProgram(fillQuad_.GetGPUProgram()->getProgramId());
+
+            gl::glActiveTexture(gl::GL_TEXTURE0 + 0);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[4]);
+            gl::glActiveTexture(gl::GL_TEXTURE0 + 1);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[6]);
+            gl::glActiveTexture(gl::GL_TEXTURE0 + 2);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[2]);
+            gl::glActiveTexture(gl::GL_TEXTURE0 + 3);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[3]);
+
+            gl::glUniform1i(fillUniformIds_[0], 0);
+            gl::glUniform1i(fillUniformIds_[1], 1);
+            gl::glUniform1i(fillUniformIds_[2], 2);
+            gl::glUniform1i(fillUniformIds_[3], 3);
+            fillQuad_.Draw();
+        });
+    }
+
+    void DepthOfField::CompositePass()
+    {
     }
 
     void DepthOfField::ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const GLTexture* targetRT)
@@ -271,15 +325,16 @@ namespace viscom::enh {
 
         DownsamplePass(passParams);
 
-        TileMinMaxPass(0, 3); // TileX min max pass
-        TileMinMaxPass(1, 4); // TileY min max pass
+        TileMinMaxPass(0, 4); // TileX min max pass
+        TileMinMaxPass(1, 5); // TileY min max pass
 
-        NearCoCBlurPass(0, 5); // blur near x pass
-        NearCoCBlurPass(1, 4); // blur near y pass
+        NearCoCBlurPass(0, 6); // blur near x pass
+        NearCoCBlurPass(1, 5); // blur near y pass
 
         ComputeDoFPass();
 
-        // fill pass
+        FillPass();
+
         // combine pass
 
         const glm::vec2 groupSize{ 32.0f, 16.0f };
@@ -344,10 +399,10 @@ namespace viscom::enh {
         gl::glFinish();
 
         gl::glUseProgram(combineProgram_->getProgramId());
-        gl::glUniform1i(combineUniformIds_[0], 0); //-V525
-        gl::glUniform1i(combineUniformIds_[1], 1);
-        gl::glUniform1i(combineUniformIds_[2], 2);
-        gl::glUniform1i(combineUniformIds_[3], 0);
+        // gl::glUniform1i(combineUniformIds_[0], 0); //-V525
+        // gl::glUniform1i(combineUniformIds_[1], 1);
+        // gl::glUniform1i(combineUniformIds_[2], 2);
+        // gl::glUniform1i(combineUniformIds_[3], 0);
         /*combineProgram->SetUniform(combineUniformIds[2], blurTextureUnitIds);
         combineProgram->SetUniform(combineUniformIds[3], params.defocus);
         combineProgram->SetUniform(combineUniformIds[4], params.bloomIntensity);
@@ -369,7 +424,7 @@ namespace viscom::enh {
         sourceRTSize_ = screenSize;
 
         fullResRT_->Resize(sourceRTSize_.x, sourceRTSize_.y);
-        fullResRT_->Resize(sourceRTSize_.x / 2, sourceRTSize_.y / 2);
+        lowResRT_->Resize(sourceRTSize_.x / 2, sourceRTSize_.y / 2);
 
 
         TextureDescriptor texDesc{ 12, gl::GL_RGB32F, gl::GL_RGB, gl::GL_FLOAT };
