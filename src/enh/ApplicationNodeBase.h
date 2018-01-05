@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include "core/ApplicationNodeInternal.h"
 #include "core/ApplicationNodeBase.h"
+#include "core/ApplicationNodeInternal.h"
+#include "enh/gfx/gl/GLTexture.h"
 #include "enh/gfx/gl/ShaderBufferBindingPoints.h"
 
 namespace viscom::enh {
@@ -31,6 +32,7 @@ namespace viscom::enh {
         ShaderBufferBindingPoints* GetUBOBindingPoints() { return &uniformBindingPoints_; }
         ShaderBufferBindingPoints* GetSSBOBindingPoints() { return &shaderStorageBindingPoints_; }
         const SimpleMeshRenderer* GetSimpleMeshes() const { return simpleMeshes_.get(); }
+        const GLTexture& GetCubicWeightsTexture() const { return cubicWeightsTexture_; }
 
     private:
         /** Holds the uniform binding points. */
@@ -39,5 +41,7 @@ namespace viscom::enh {
         ShaderBufferBindingPoints shaderStorageBindingPoints_;
         /** Holds the simple meshes renderer. */
         std::unique_ptr<SimpleMeshRenderer> simpleMeshes_;
+        /** Holds the texture for cubic filtering weights. */
+        GLTexture cubicWeightsTexture_;
     };
 }
