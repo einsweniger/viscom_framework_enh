@@ -10,12 +10,12 @@
 
 #include "core/ApplicationNodeBase.h"
 #include "core/ApplicationNodeInternal.h"
-#include "enh/gfx/gl/GLTexture.h"
 #include "enh/gfx/gl/ShaderBufferBindingPoints.h"
 
 namespace viscom::enh {
 
     class SimpleMeshRenderer;
+    class GLTexture;
 
     class ApplicationNodeBase : public viscom::ApplicationNodeBase
     {
@@ -28,11 +28,12 @@ namespace viscom::enh {
         virtual ~ApplicationNodeBase() override;
 
         virtual void InitOpenGL() override;
+        virtual void CleanUp() override;
 
         ShaderBufferBindingPoints* GetUBOBindingPoints() { return &uniformBindingPoints_; }
         ShaderBufferBindingPoints* GetSSBOBindingPoints() { return &shaderStorageBindingPoints_; }
         const SimpleMeshRenderer* GetSimpleMeshes() const { return simpleMeshes_.get(); }
-        const GLTexture& GetCubicWeightsTexture() const { return cubicWeightsTexture_; }
+        const GLTexture& GetCubicWeightsTexture() const { return *cubicWeightsTexture_; }
 
     private:
         /** Holds the uniform binding points. */
@@ -42,6 +43,6 @@ namespace viscom::enh {
         /** Holds the simple meshes renderer. */
         std::unique_ptr<SimpleMeshRenderer> simpleMeshes_;
         /** Holds the texture for cubic filtering weights. */
-        GLTexture cubicWeightsTexture_;
+        std::unique_ptr<GLTexture> cubicWeightsTexture_;
     };
 }

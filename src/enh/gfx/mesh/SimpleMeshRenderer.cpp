@@ -37,7 +37,7 @@ namespace viscom::enh {
     };
 
     SimpleMeshRenderer::SimpleMeshRenderer(ApplicationNodeBase* app) :
-        simpleProgram_(app->GetGPUProgramManager().GetResource("drawSimple", std::vector<std::string>{"drawSimple.vp", "drawSimple.fp"}))
+        simpleProgram_(app->GetGPUProgramManager().GetResource("drawSimple", std::vector<std::string>{"drawSimple.vert", "drawSimple.frag"}))
     {
         std::vector<SimpleVertex> vertices;
         std::vector<unsigned int> indices;
@@ -90,55 +90,55 @@ namespace viscom::enh {
         SimpleVertex::VertexAttributeSetup(drawAttribBinds_.GetVertexAttributes().back().get(), shaderPositions);
         gl::glBindBuffer(gl::GL_ARRAY_BUFFER, 0);
 
-        drawAttribBinds_.GetUniformIds() = simpleProgram_->GetUniformLocations({ "MVMatrix", "modelMatrix", "color", "pointSize" });
+        drawAttribBinds_.GetUniformIds() = simpleProgram_->GetUniformLocations({ "vpMatrix", "modelMatrix", "color", "pointSize" });
     }
 
     SimpleMeshRenderer::~SimpleMeshRenderer() = default;
 
-    void SimpleMeshRenderer::DrawCone(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
+    void SimpleMeshRenderer::DrawCone(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 0);
+        DrawSubmesh(VPMatrix, modelMatrix, color, 0);
     }
 
-    void SimpleMeshRenderer::DrawCube(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
+    void SimpleMeshRenderer::DrawCube(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 1);
+        DrawSubmesh(VPMatrix, modelMatrix, color, 1);
     }
 
-    void SimpleMeshRenderer::DrawCylinder(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
+    void SimpleMeshRenderer::DrawCylinder(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 2);
+        DrawSubmesh(VPMatrix, modelMatrix, color, 2);
     }
 
-    void SimpleMeshRenderer::DrawOctahedron(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
+    void SimpleMeshRenderer::DrawOctahedron(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 3);
+        DrawSubmesh(VPMatrix, modelMatrix, color, 3);
     }
 
-    void SimpleMeshRenderer::DrawSphere(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
+    void SimpleMeshRenderer::DrawSphere(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 4); //-V112
+        DrawSubmesh(VPMatrix, modelMatrix, color, 4); //-V112
     }
 
-    void SimpleMeshRenderer::DrawTorus(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
+    void SimpleMeshRenderer::DrawTorus(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 5);
+        DrawSubmesh(VPMatrix, modelMatrix, color, 5);
     }
 
-    void SimpleMeshRenderer::DrawPoint(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color, float pointSize) const
+    void SimpleMeshRenderer::DrawPoint(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color, float pointSize) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 6, pointSize);
+        DrawSubmesh(VPMatrix, modelMatrix, color, 6, pointSize);
     }
 
-    void SimpleMeshRenderer::DrawLine(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
+    void SimpleMeshRenderer::DrawLine(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const
     {
-        DrawSubmesh(MVMatrix, modelMatrix, color, 7);
+        DrawSubmesh(VPMatrix, modelMatrix, color, 7);
     }
 
-    void SimpleMeshRenderer::DrawSubmesh(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color, unsigned int submeshId, float pointSize) const
+    void SimpleMeshRenderer::DrawSubmesh(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color, unsigned int submeshId, float pointSize) const
     {
         gl::glUseProgram(simpleProgram_->getProgramId());
-        gl::glUniformMatrix4fv(drawAttribBinds_.GetUniformIds()[0], 1, gl::GL_FALSE, glm::value_ptr(MVMatrix));
+        gl::glUniformMatrix4fv(drawAttribBinds_.GetUniformIds()[0], 1, gl::GL_FALSE, glm::value_ptr(VPMatrix));
         gl::glUniformMatrix4fv(drawAttribBinds_.GetUniformIds()[1], 1, gl::GL_FALSE, glm::value_ptr(modelMatrix));
         gl::glUniform4fv(drawAttribBinds_.GetUniformIds()[2], 1, glm::value_ptr(color));
         gl::glUniform1f(drawAttribBinds_.GetUniformIds()[3], pointSize);

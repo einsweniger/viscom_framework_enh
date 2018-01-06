@@ -13,6 +13,7 @@
 #include <glbinding/Binding.h>
 #include <glbinding/callbacks.h>
 #include <glbinding/gl/gl.h>
+#include "enh/gfx/gl/GLTexture.h"
 
 void ecb(const glbinding::FunctionCall & call) {
     std::stringstream callOut;
@@ -76,9 +77,27 @@ void ecb(const glbinding::FunctionCall & call) {
 namespace viscom::enh {
 
     ApplicationNodeBase::ApplicationNodeBase(ApplicationNodeInternal* appNode) :
-        viscom::ApplicationNodeBase{ appNode },
-        cubicWeightsTexture_{ 256, TextureDescriptor{ 12, gl::GL_RGB32F, gl::GL_RGB, gl::GL_FLOAT } }
+        viscom::ApplicationNodeBase{ appNode }
     {
+    }
+
+    ApplicationNodeBase::~ApplicationNodeBase() = default;
+
+    void ApplicationNodeBase::InitOpenGL()
+    {
+        {
+            using namespace glbinding;
+            Binding::initialize();
+#ifdef VISCOM_OGL_DEBUG_MSGS
+            setCallbackMaskExcept(CallbackMask::After | CallbackMask::ParametersAndReturnValue, { "glGetError" });
+            setAfterCallback(ecb);
+#endif // VISCOM_OGL_DEBUG_MSGS
+        }
+
+        simpleMeshes_ = std::make_unique<SimpleMeshRenderer>(this);
+
+        cubicWeightsTexture_ = std::make_unique<GLTexture>(256, TextureDescriptor{ 12, gl::GL_RGB32F, gl::GL_RGB, gl::GL_FLOAT });
+
         std::array<glm::vec3, 256> hg_precalc;
         for (std::size_t i = 0; i < hg_precalc.size(); ++i) {
             auto x = static_cast<float>(i) / static_cast<float>(hg_precalc.size());
@@ -96,25 +115,15 @@ namespace viscom::enh {
             hg_precalc[i].y = 1.0f + (w[3] / (w[2] + w[3])) - x;
         }
 
-        cubicWeightsTexture_.SetData(hg_precalc.data());
-        cubicWeightsTexture_.SampleLinear();
-        cubicWeightsTexture_.SampleWrapRepeat();
+        cubicWeightsTexture_->SetData(hg_precalc.data());
+        cubicWeightsTexture_->SampleLinear();
+        cubicWeightsTexture_->SampleWrapRepeat();
     }
 
-    ApplicationNodeBase::~ApplicationNodeBase() = default;
-
-    void ApplicationNodeBase::InitOpenGL()
+    void ApplicationNodeBase::CleanUp()
     {
-        {
-            using namespace glbinding;
-            Binding::initialize();
-#ifdef VISCOM_OGL_DEBUG_MSGS
-            setCallbackMaskExcept(CallbackMask::After | CallbackMask::ParametersAndReturnValue, { "glGetError" });
-            setAfterCallback(ecb);
-#endif // VISCOM_OGL_DEBUG_MSGS
-        }
-
-        simpleMeshes_ = std::make_unique<SimpleMeshRenderer>(this);
+        simpleMeshes_ = nullptr;
+        cubicWeightsTexture_ = nullptr;
     }
 
 }

@@ -28,17 +28,17 @@ namespace viscom::enh {
         explicit SimpleMeshRenderer(ApplicationNodeBase* app);
         ~SimpleMeshRenderer();
 
-        void DrawCone(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
-        void DrawCube(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
-        void DrawCylinder(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
-        void DrawOctahedron(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
-        void DrawSphere(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
-        void DrawTorus(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
-        void DrawPoint(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color, float pointSize) const;
-        void DrawLine(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
+        void DrawCone(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
+        void DrawCube(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
+        void DrawCylinder(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
+        void DrawOctahedron(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
+        void DrawSphere(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
+        void DrawTorus(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
+        void DrawPoint(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color, float pointSize) const;
+        void DrawLine(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color) const;
 
     private:
-        void DrawSubmesh(const glm::mat4& MVMatrix, const glm::mat4& modelMatrix, const glm::vec4& color, unsigned int submeshId, float pointSize = 1.0f) const;
+        void DrawSubmesh(const glm::mat4& VPMatrix, const glm::mat4& modelMatrix, const glm::vec4& color, unsigned int submeshId, float pointSize = 1.0f) const;
 
         using SimpleSubMesh = std::pair<unsigned int, unsigned int>;
 
