@@ -9,10 +9,10 @@ layout(location = 0) out vec4 cocResult; // 2 channels
 void main()
 {
 #ifdef HORIZONTAL
-    const vec2 direction = ivec2(1, 0);
+    const ivec2 direction = ivec2(1, 0);
 #endif
 #ifdef VERTICAL
-    const vec2 direction = ivec2(0, 1);
+    const ivec2 direction = ivec2(0, 1);
 #endif
 
     ivec2 iTexCoord = ivec2(texCoord * vec2(textureSize(cocTex, 0)));

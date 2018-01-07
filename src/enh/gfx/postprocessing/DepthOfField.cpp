@@ -19,6 +19,9 @@ namespace viscom::enh {
         struct DoFPassParams {
             GLuint colorTex_;
             GLuint depthTex_;
+            const FrameBuffer* fullResRT_;
+            const FrameBuffer* lowResRT_;
+            glm::vec2 projParams_;
             glm::vec2 cocParams_;
         };
 
@@ -76,10 +79,10 @@ namespace viscom::enh {
         };
     }
 
-    DepthOfField::DepthOfField(const glm::ivec2 sourceSize, ApplicationNodeBase* app) :
+    DepthOfField::DepthOfField(ApplicationNodeBase* app) :
         app_{ app },
         cocQuad_{ "dof/coc.frag", app },
-        cocUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "depthTex", "cocParams" }) },
+        cocUniformIds_{ cocQuad_.GetGPUProgram()->GetUniformLocations({ "depthTex", "projParams", "cocParams" }) },
         downsampleQuad_{ "dof/downsample.frag", app },
         downsampleUniformIds_{ downsampleQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex" }) },
         tileMinMaxCoCQuad_{ FullscreenQuad{"dof/tileMinMaxXCoC.frag", "dof/tileMinMaxCoC.frag", std::vector<std::string>{ "HORIZONTAL" }, app},
@@ -94,20 +97,19 @@ namespace viscom::enh {
         fillQuad_{ "dof/fill.frag", app },
         fillUniformIds_{ fillQuad_.GetGPUProgram()->GetUniformLocations({ "cocTex", "cocNearBlurTex", "dofNearTex", "dofFarTex" }) },
         compositeQuad_{ "dof/composite.frag", app },
-        compositeUniformIds_{ compositeQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "cocHalfTex", "cocNearBlurHalfTex", "dofNearHalfTex", "dofFarHalfTex", "hgTex", "blend" }) },
-        sourceRTSize_(sourceSize)
+        compositeUniformIds_{ compositeQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "cocHalfTex", "cocNearBlurHalfTex", "dofNearHalfTex", "dofFarHalfTex", "hgTex", "blend" }) }
     {
-        params_.focusZ_ = 2.3f;
-        params_.imageDistance_ = 0.05f;
-        params_.fStops_ = 2.2f;
-        params_.fStopsMin_ = 1.6f;
-        params_.fStopsMax_ = 5.6f;
+        params_.focusZ_ = 3.3f;
+        params_.imageDistance_ = 0.005f;
+        params_.fStops_ = 5.6f;
+        params_.fStopsMin_ = 1.8f;
+        params_.fStopsMax_ = 22.0f;
         params_.bokehShape_ = 7;
         params_.rotateBokehMax_ = glm::pi<float>() / 3.0f;
         params_.blendFactor_ = 1.0f;
 
         FrameBufferDescriptor fullResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) } }, {} }; // CoC near/far/depth
-        fullResRT_ = std::make_unique<FrameBuffer>(sourceSize.x, sourceSize.y, fullResRTDesc);
+        fullResRTs_ = app_->CreateOffscreenBuffers(fullResRTDesc);
 
         FrameBufferDescriptor lowResRTDesc{ {
                 FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) }, // 0: color / nearFieldFill
@@ -118,8 +120,7 @@ namespace viscom::enh {
                 FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) }, // 5: CoC near/far ping
                 FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RG32F) } // 6: CoC near/far pong <- final
             }, {} };
-        lowResRT_ = std::make_unique<FrameBuffer>(sourceSize.x / 2, sourceSize.y / 2, lowResRTDesc);
-        // Resize(sourceSize);
+        lowResRTs_ = app_->CreateOffscreenBuffers(lowResRTDesc, 2);
 
         downsamplePassDrawBuffers_ = { 0, 1, 4 };
         tilePassDrawBuffers_[0] = { 5 };
@@ -169,27 +170,28 @@ namespace viscom::enh {
 
     void DepthOfField::CoCPass(const dof::DoFPassParams& passParams)
     {
-        fullResRT_->DrawToFBO([this, &passParams]() {
+        passParams.fullResRT_->DrawToFBO([this, &passParams]() {
             gl::glUseProgram(cocQuad_.GetGPUProgram()->getProgramId());
 
             gl::glActiveTexture(gl::GL_TEXTURE0);
             gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.depthTex_);
 
             gl::glUniform1i(cocUniformIds_[0], 0);
-            gl::glUniform2fv(cocUniformIds_[1], 1, glm::value_ptr(passParams.cocParams_));
+            gl::glUniform2fv(cocUniformIds_[1], 1, glm::value_ptr(passParams.projParams_));
+            gl::glUniform2fv(cocUniformIds_[2], 1, glm::value_ptr(passParams.cocParams_));
             cocQuad_.Draw();
         });
     }
 
     void DepthOfField::DownsamplePass(const dof::DoFPassParams& passParams)
     {
-        lowResRT_->DrawToFBO(downsamplePassDrawBuffers_, [this, &passParams]() {
+        passParams.lowResRT_->DrawToFBO(downsamplePassDrawBuffers_, [this, &passParams]() {
             gl::glUseProgram(downsampleQuad_.GetGPUProgram()->getProgramId());
 
             gl::glActiveTexture(gl::GL_TEXTURE0);
             gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.colorTex_);
             gl::glActiveTexture(gl::GL_TEXTURE1);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, fullResRT_->GetTextures()[0]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.fullResRT_->GetTextures()[0]);
 
             gl::glUniform1i(downsampleUniformIds_[0], 0);
             gl::glUniform1i(downsampleUniformIds_[1], 1);
@@ -197,45 +199,45 @@ namespace viscom::enh {
         });
     }
 
-    void DepthOfField::TileMinMaxPass(std::size_t pass, std::size_t sourceTex)
+    void DepthOfField::TileMinMaxPass(const dof::DoFPassParams& passParams, std::size_t pass, std::size_t sourceTex)
     {
-        lowResRT_->DrawToFBO(tilePassDrawBuffers_[pass], [this, pass, sourceTex]() {
+        passParams.lowResRT_->DrawToFBO(tilePassDrawBuffers_[pass], [this, &passParams, pass, sourceTex]() {
             gl::glUseProgram(tileMinMaxCoCQuad_[pass].GetGPUProgram()->getProgramId());
 
             gl::glActiveTexture(gl::GL_TEXTURE0);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[sourceTex]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[sourceTex]);
 
             gl::glUniform1i(tileMinMaxCoCUniformIds_[pass][0], 0);
             tileMinMaxCoCQuad_[pass].Draw();
         });
     }
 
-    void DepthOfField::NearCoCBlurPass(std::size_t pass, std::size_t sourceTex)
+    void DepthOfField::NearCoCBlurPass(const dof::DoFPassParams& passParams, std::size_t pass, std::size_t sourceTex)
     {
-        lowResRT_->DrawToFBO(tilePassDrawBuffers_[pass], [this, pass, sourceTex]() {
+        passParams.lowResRT_->DrawToFBO(tilePassDrawBuffers_[pass], [this, &passParams, pass, sourceTex]() {
             gl::glUseProgram(nearCoCBlurQuad_[pass].GetGPUProgram()->getProgramId());
 
             gl::glActiveTexture(gl::GL_TEXTURE0);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[sourceTex]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[sourceTex]);
 
             gl::glUniform1i(nearCoCBlurUniformIds_[pass][0], 0);
             nearCoCBlurQuad_[pass].Draw();
         });
     }
 
-    void DepthOfField::ComputeDoFPass()
+    void DepthOfField::ComputeDoFPass(const dof::DoFPassParams& passParams)
     {
-        lowResRT_->DrawToFBO(dofPassDrawBuffers_, [this]() {
+        passParams.lowResRT_->DrawToFBO(dofPassDrawBuffers_, [this, &passParams]() {
             gl::glUseProgram(dofQuad_.GetGPUProgram()->getProgramId());
 
             gl::glActiveTexture(gl::GL_TEXTURE0 + 0);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[4]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[4]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 1);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[6]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[6]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 2);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[0]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[0]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 3);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[1]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[1]);
 
             gl::glUniform1i(dofUniformIds_[0], 0);
             gl::glUniform1i(dofUniformIds_[1], 1);
@@ -246,19 +248,19 @@ namespace viscom::enh {
         });
     }
 
-    void DepthOfField::FillPass()
+    void DepthOfField::FillPass(const dof::DoFPassParams& passParams)
     {
-        lowResRT_->DrawToFBO(fillPassDrawBuffers_, [this]() {
+        passParams.lowResRT_->DrawToFBO(fillPassDrawBuffers_, [this, &passParams]() {
             gl::glUseProgram(fillQuad_.GetGPUProgram()->getProgramId());
 
             gl::glActiveTexture(gl::GL_TEXTURE0 + 0);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[4]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[4]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 1);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[6]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[6]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 2);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[2]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[2]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 3);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[3]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[3]);
 
             gl::glUniform1i(fillUniformIds_[0], 0);
             gl::glUniform1i(fillUniformIds_[1], 1);
@@ -268,23 +270,23 @@ namespace viscom::enh {
         });
     }
 
-    void DepthOfField::CompositePass(const dof::DoFPassParams& passParams, FrameBuffer& targetFBO)
+    void DepthOfField::CompositePass(const dof::DoFPassParams& passParams, const FrameBuffer* targetFBO)
     {
-        targetFBO.DrawToFBO([this, &passParams]() {
+        targetFBO->DrawToFBO([this, &passParams]() {
             gl::glUseProgram(compositeQuad_.GetGPUProgram()->getProgramId());
 
             gl::glActiveTexture(gl::GL_TEXTURE0 + 0);
             gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.colorTex_);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 1);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, fullResRT_->GetTextures()[0]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.fullResRT_->GetTextures()[0]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 2);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[4]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[4]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 3);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[6]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[6]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 4);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[0]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[0]);
             gl::glActiveTexture(gl::GL_TEXTURE0 + 5);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, lowResRT_->GetTextures()[1]);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[1]);
             app_->GetCubicWeightsTexture().ActivateTexture(gl::GL_TEXTURE0 + 6);
 
             gl::glUniform1i(compositeUniformIds_[0], 0);
@@ -299,23 +301,32 @@ namespace viscom::enh {
         });
     }
 
-    void DepthOfField::ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, FrameBuffer& targetFBO)
+    void DepthOfField::ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const FrameBuffer* targetFBO)
     {
         dof::DoFPassParams passParams;
         passParams.colorTex_ = colorTex;
         passParams.depthTex_ = depthTex;
+        passParams.fullResRT_ = app_->SelectOffscreenBuffer(fullResRTs_);
+        passParams.lowResRT_ = app_->SelectOffscreenBuffer(lowResRTs_);
+        passParams.projParams_.x = cam.GetPerspectiveMatrix()[2][2];
+        passParams.projParams_.y = cam.GetPerspectiveMatrix()[3][2];
 
         // see https://stackoverflow.com/questions/6652253/getting-the-true-z-value-from-the-depth-buffer
         // linear solution should be: -B / (z_n + A)
         // also https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch23.html
         // and http://www.crytek.com/download/Sousa_Graphics_Gems_CryENGINE3.pdf
 
+        // auto resY = static_cast<float>(targetFBO->GetHeight());
+        auto resX = static_cast<float>(targetFBO->GetHeight());
+        // auto aspect = resY / resX;
+        // auto filmY = 0.035f * aspect;
+        auto cocPixelFactor = resX / 0.035f;
         float F = (params_.imageDistance_ * params_.focusZ_) / (params_.imageDistance_ + params_.focusZ_);
         float A = F / params_.fStops_;
-        float cocDiv = cam.GetPerspectiveMatrix()[3][2] * (F - params_.focusZ_);
-        float cocBias = A * F * ((params_.focusZ_ * cam.GetPerspectiveMatrix()[2][2]) + cam.GetPerspectiveMatrix()[3][2]);
-        passParams.cocParams_.x = (A * F * params_.focusZ_) / cocDiv; // coc scale
-        passParams.cocParams_.y = cocBias / cocDiv; // coc bias
+        float cocDiv = passParams.projParams_.y * (F - params_.focusZ_);
+        float cocBias = A * F * ((params_.focusZ_ * passParams.projParams_.x) + passParams.projParams_.y);
+        passParams.cocParams_.x = cocPixelFactor * (A * F * params_.focusZ_) / cocDiv; // coc scale
+        passParams.cocParams_.y = cocPixelFactor * cocBias / cocDiv; // coc bias
 
         if (recalcBokeh_) RecalcBokeh();
 
@@ -323,24 +334,16 @@ namespace viscom::enh {
 
         DownsamplePass(passParams);
 
-        TileMinMaxPass(0, 4); // TileX min max pass
-        TileMinMaxPass(1, 5); // TileY min max pass
+        TileMinMaxPass(passParams, 0, 4); // TileX min max pass
+        TileMinMaxPass(passParams, 1, 5); // TileY min max pass
 
-        NearCoCBlurPass(0, 6); // blur near x pass
-        NearCoCBlurPass(1, 5); // blur near y pass
+        NearCoCBlurPass(passParams, 0, 6); // blur near x pass
+        NearCoCBlurPass(passParams, 1, 5); // blur near y pass
 
-        ComputeDoFPass();
+        ComputeDoFPass(passParams);
 
-        FillPass();
+        FillPass(passParams);
 
         CompositePass(passParams, targetFBO);
-    }
-
-    void DepthOfField::Resize(const glm::uvec2& screenSize)
-    {
-        sourceRTSize_ = screenSize;
-
-        fullResRT_->Resize(sourceRTSize_.x, sourceRTSize_.y);
-        lowResRT_->Resize(sourceRTSize_.x / 2, sourceRTSize_.y / 2);
     }
 }

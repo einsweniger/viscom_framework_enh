@@ -1,4 +1,4 @@
-#version 330 core
+#version 400 core
 
 #include "../bicubic_sampling.glsl"
 
@@ -29,19 +29,19 @@ void main()
         // 0   1 -> 2   3
         //   x   ->   x  
         // 3   2 -> 0   1
-        float cocFar = texelFetch(cocTex, iTexCoord, 0).y;
+        vec4 cocFar = vec4(texelFetch(cocTex, iTexCoord, 0).y);
         vec4 cocFarHalf = textureGather(cocHalfTex, texCoord, 1).wzxy;
         vec4 cocFarDiffs = abs(cocFar.xxxx - cocFarHalf);
 
-        dofFar = sampleBiCubicBilateral(dofFarHalfTex, texCoord, cocFarDiffs);
+        vec4 dofFar = sampleBiCubicBilateral(dofFarHalfTex, texCoord, cocFarDiffs);
 
-        float blendWeight = blend * cocFar; // should use some non-linear factor here...
+        float blendWeight = blend * cocFar.x; // should use some non-linear factor here...
         result = mix(result, dofFar, blendWeight);
     }
 
     {
         float cocNear = sampleBiCubic(cocNearBlurHalfTex, texCoord).x;
-        vec4 dofNear = sampleBiCubic(dofNearHalfTex, texCoord).x;
+        vec4 dofNear = sampleBiCubic(dofNearHalfTex, texCoord);
 
         float blendWeight = blend * cocNear; // should use some non-linear factor here...
         result = mix(result, dofNear, blendWeight);

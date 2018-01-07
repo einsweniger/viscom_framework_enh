@@ -6,8 +6,8 @@ vec4 sampleBiCubic(sampler2D tex, vec2 coords) {
     vec2 pixelSizeX = vec2(pixelSize.x, 0.0f);
     vec2 pixelSizeY = vec2(0.0f, pixelSize.y);
     vec2 coordHG = coords * texSize - vec2(0.5f, 0.5f);
-    vec3 hgX = texture(hgTex, coordHG.x);
-    vec3 hgY = texture(hgTex, coordHG.y);
+    vec3 hgX = texture(hgTex, coordHG.x).xyz;
+    vec3 hgY = texture(hgTex, coordHG.y).xyz;
 
     vec2 coordsA[4];
     coordsA[0] = coords - hgX.x * pixelSizeX;
@@ -35,8 +35,8 @@ vec4 sampleBiCubicBilateral(sampler2D tex, vec2 coords, vec4 bilateralWeights) {
     vec2 pixelSizeX = vec2(pixelSize.x, 0.0f);
     vec2 pixelSizeY = vec2(0.0f, pixelSize.y);
     vec2 coordHG = coords * texSize - vec2(0.5f, 0.5f);
-    vec3 hgX = texture(hgTex, coordHG.x);
-    vec3 hgY = texture(hgTex, coordHG.y);
+    vec3 hgX = texture(hgTex, coordHG.x).xyz;
+    vec3 hgY = texture(hgTex, coordHG.y).xyz;
 
     // 2   3
     //   x  

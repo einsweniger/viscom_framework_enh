@@ -57,12 +57,11 @@ namespace viscom::enh {
     class DepthOfField
     {
     public:
-        explicit DepthOfField(const glm::ivec2 sourceSize, ApplicationNodeBase* app);
+        explicit DepthOfField(ApplicationNodeBase* app);
         ~DepthOfField();
 
         void RenderParameterSliders();
-        void ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, FrameBuffer& targetFBO);
-        void Resize(const glm::uvec2& screenSize);
+        void ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const FrameBuffer* targetFBO);
 
         template<class Archive> void SaveParameters(Archive& ar, const std::uint32_t) const {
             ar(cereal::make_nvp("params", params_));
@@ -76,19 +75,19 @@ namespace viscom::enh {
         void RecalcBokeh();
         void CoCPass(const dof::DoFPassParams& passParams);
         void DownsamplePass(const dof::DoFPassParams& passParams);
-        void TileMinMaxPass(std::size_t pass, std::size_t sourceTex);
-        void NearCoCBlurPass(std::size_t pass, std::size_t sourceTex);
-        void ComputeDoFPass();
-        void FillPass();
-        void CompositePass(const dof::DoFPassParams& passParams, FrameBuffer& targetFBO);
+        void TileMinMaxPass(const dof::DoFPassParams& passParams, std::size_t pass, std::size_t sourceTex);
+        void NearCoCBlurPass(const dof::DoFPassParams& passParams, std::size_t pass, std::size_t sourceTex);
+        void ComputeDoFPass(const dof::DoFPassParams& passParams);
+        void FillPass(const dof::DoFPassParams& passParams);
+        void CompositePass(const dof::DoFPassParams& passParams, const FrameBuffer* targetFBO);
 
         /** Holds the base application object. */
         ApplicationNodeBase* app_;
 
         /** Holds the frame buffer with the full resolution render targets. */
-        std::unique_ptr<FrameBuffer> fullResRT_;
+        std::vector<FrameBuffer> fullResRTs_;
         /** Holds the frame buffer with the low resolution render targets. */
-        std::unique_ptr<FrameBuffer> lowResRT_;
+        std::vector<FrameBuffer> lowResRTs_;
 
         /** Holds the bloom parameters. */
         DOFParams params_;
@@ -134,9 +133,6 @@ namespace viscom::enh {
         std::vector<std::size_t> dofPassDrawBuffers_;
         /** The draw buffers used in the fill dof pass. */
         std::vector<std::size_t> fillPassDrawBuffers_;
-
-        /** Holds the size of the source textures. */
-        glm::ivec2 sourceRTSize_;
     };
 }
 

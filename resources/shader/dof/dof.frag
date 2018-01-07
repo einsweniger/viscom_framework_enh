@@ -77,7 +77,7 @@ vec4 calcNear(vec4 color, float cocNearBlurred, vec2 pixelSize)
     return result / 49.0f;
 }
 
-vec4 calcFar(ivec2 iTexCoord, float cocFar)
+vec4 calcFar(ivec2 iTexCoord, float cocFar, vec2 pixelSize)
 {
     vec4 result = texelFetch(colorMulCoCFarTex, iTexCoord, 0);
     float weightsSum = cocFar;
@@ -107,6 +107,6 @@ void main()
     if (cocNearBlurred > 0.0f) nearField = calcNear(color, cocNearBlurred, pixelSize);
     else nearField = color;
 
-    if (cocFar > 0.0f) farField = calcFar(iTexCoord, cocFar);
+    if (cocFar > 0.0f) farField = calcFar(iTexCoord, cocFar, pixelSize);
     else farField = vec4(0.0f);
 }

@@ -1,14 +1,17 @@
 #version 330 core
 
 uniform sampler2D depthTex;
+uniform vec2 projParams;
 uniform vec2 cocParams;
-uniform float focusZ;
-uniform float apertureRadius;
-uniform float fStops;
 
 in vec2 texCoord;
 
 layout(location = 0) out vec4 cocResult; // 3 channels
+
+float depthNDCToView(float depthNDC)
+{
+    return projParams.y / (depthNDC + projParams.x);
+}
 
 void main()
 {
@@ -20,5 +23,5 @@ void main()
     cocResult = vec4(0.0f);
     if (coc < 0.0f) cocResult.y = -coc; // far
     else cocResult.x = coc; // near
-    cocResult.z = depth;
+    cocResult.z = depthNDCToView(depthNDC);
 }
