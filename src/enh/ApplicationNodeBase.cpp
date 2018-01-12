@@ -13,6 +13,7 @@
 #include <glbinding/Binding.h>
 #include <glbinding/callbacks.h>
 #include <glbinding/gl/gl.h>
+#include <glbinding/Meta.h>
 #include "enh/gfx/gl/GLTexture.h"
 
 void ecb(const glbinding::FunctionCall & call) {
@@ -33,44 +34,8 @@ void ecb(const glbinding::FunctionCall & call) {
 
     const auto error = gl::glGetError();
 
-    auto doprint = true;
-    std::string errorStr;
-    switch (error)
-    {
-    case gl::GL_INVALID_ENUM:
-        errorStr = "GL_INVALID_ENUM";
-        break;
-    case gl::GL_INVALID_VALUE:
-        errorStr = "GL_INVALID_VALUE";
-        break;
-    case gl::GL_INVALID_OPERATION:
-        errorStr = "GL_INVALID_OPERATION";
-        break;
-    case gl::GL_INVALID_FRAMEBUFFER_OPERATION:
-        errorStr = "GL_INVALID_FRAMEBUFFER_OPERATION";
-        break;
-    case gl::GL_OUT_OF_MEMORY:
-        errorStr = "GL_OUT_OF_MEMORY";
-        break;
-    case gl::GL_STACK_UNDERFLOW:
-        errorStr = "GL_STACK_UNDERFLOW";
-        break;
-    case gl::GL_STACK_OVERFLOW:
-        errorStr = "GL_STACK_OVERFLOW";
-        break;
-    case gl::GL_TABLE_TOO_LARGE:
-        errorStr = "GL_TABLE_TOO_LARGE";
-        break;
-    case gl::GL_TEXTURE_TOO_LARGE_EXT:
-        errorStr = "GL_TEXTURE_TOO_LARGE_EXT";
-        break;
-    default:
-        doprint = false;
-        break;
-    }
-
-    if (doprint) {
-        LOG(WARNING) << "Error: " << errorStr;
+    if (gl::GL_NO_ERROR != error) {
+        LOG(WARNING) << "Error: " << glbinding::Meta::getString(error);
     }
 }
 
