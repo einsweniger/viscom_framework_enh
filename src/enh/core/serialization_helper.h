@@ -12,6 +12,7 @@
 #include <cereal/cereal.hpp>
 #include <fstream>
 #include <cereal/archives/binary.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 namespace viscom::enh {
 
