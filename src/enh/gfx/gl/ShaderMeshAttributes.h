@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include <vector>
 #include <glbinding/gl/gl.h>
+#include <memory>
+#include <vector>
 
 namespace viscom::enh {
 

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "enh/main.h"
 #include "enh/core/type_traits.h"
+#include "enh/main.h"
 #include <glbinding/gl/gl.h>
 
 namespace viscom::enh {
@@ -46,16 +46,16 @@ namespace viscom::enh {
 
     template <class T> std::enable_if_t<has_contiguous_memory<T>::value> GLBuffer::InitializeData(const T& data)
     {
-        InitializeData(static_cast<unsigned int>(sizeof(T::value_type) * data.size()), data.data());
+        InitializeData(static_cast<unsigned int>(sizeof(typename T::value_type) * data.size()), data.data());
     }
 
     template <class T> std::enable_if_t<has_contiguous_memory<T>::value> GLBuffer::UploadData(unsigned offset, const T& data)
     {
-        UploadData(offset, static_cast<unsigned int>(sizeof(T::value_type) * data.size()), data.data());
+        UploadData(offset, static_cast<unsigned int>(sizeof(typename T::value_type) * data.size()), data.data());
     }
 
     template <class T> std::enable_if_t<has_contiguous_memory<T>::value> GLBuffer::DownloadData(T& data) const
     {
-        DownloadData(static_cast<unsigned int>(sizeof(T::value_type) * data.size()), data.data());
+        DownloadData(static_cast<unsigned int>(sizeof(typename T::value_type) * data.size()), data.data());
     }
 }

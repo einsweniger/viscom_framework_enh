@@ -7,8 +7,8 @@
  */
 
 #include "GLUniformBuffer.h"
-#include "ShaderBufferBindingPoints.h"
 #include "GLBuffer.h"
+#include "ShaderBufferBindingPoints.h"
 
 #include <cassert>
 
@@ -42,7 +42,7 @@ namespace viscom::enh {
      *  Copy constructor.
      */
     GLUniformBuffer::GLUniformBuffer(const GLUniformBuffer& rhs) :
-        GLUniformBuffer(rhs.uboName_, bindingPoints_)
+        GLUniformBuffer(rhs.uboName_, rhs.bindingPoints_)
     {
         std::vector<int8_t> tmp(rhs.buffer_->GetBufferSize());
         rhs.buffer_->DownloadData(tmp);
@@ -69,7 +69,7 @@ namespace viscom::enh {
         buffer_(std::move(rhs.buffer_)),
         bindingPoints_(std::move(rhs.bindingPoints_)),
         bindingPoint_(std::move(rhs.bindingPoint_)),
-        uboName_(std::move(uboName_))
+        uboName_(std::move(rhs.uboName_))
     {
     }
 

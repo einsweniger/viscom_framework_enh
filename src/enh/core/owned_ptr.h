@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <utility>
+
 namespace viscom::enh {
 
     template <typename T> class owned_ptr
