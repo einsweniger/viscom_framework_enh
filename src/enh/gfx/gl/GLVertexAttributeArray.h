@@ -10,6 +10,7 @@
 
 #include "enh/main.h"
 #include <glbinding/gl/gl.h>
+#include <vector>
 
 namespace viscom::enh {
 

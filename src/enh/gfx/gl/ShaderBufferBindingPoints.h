@@ -9,6 +9,7 @@
 #pragma once
 
 #include <glbinding/gl/gl.h>
+#include <unordered_map>
 
 namespace viscom::enh {
 
