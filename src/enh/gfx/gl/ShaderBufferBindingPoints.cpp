@@ -31,6 +31,6 @@ namespace viscom::enh {
     void ShaderBufferBindingPoints::BindBufferBlock(gl::GLuint program, const std::string& name)
     {
         auto uboIndex = gl::glGetUniformBlockIndex(program, name.c_str());
-        gl::glUniformBlockBinding(program, uboIndex, GetBindingPoint("filmicBuffer"));
+        gl::glUniformBlockBinding(program, uboIndex, GetBindingPoint(name.c_str()));
     }
 }
