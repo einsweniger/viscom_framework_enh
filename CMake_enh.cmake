@@ -9,6 +9,7 @@ option(OPTION_BUILD_TOOLS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING")
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/fwenh/extern/glbinding)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/fwenh/extern/cereal)
 
 set(VISCOM_DO_PROFILING ON CACHE BOOL "Turn on profiling.")
 
@@ -43,7 +44,7 @@ list(APPEND ENH_INCLUDE_DIRS
     extern/fwenh/extern/glbinding/source/glbinding/include
     extern/fwenh/extern/cereal/include)
 
-list(APPEND ENH_LIBS glbinding)
+list(APPEND ENH_LIBS glbinding cereal)
 list(APPEND COMPILE_TIME_DEFS $<$<CONFIG:DebugOpenGLCalls>:VISCOM_OGL_DEBUG_MSGS> GLFW_INCLUDE_NONE _SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 
 if (VISCOM_DO_PROFILING)

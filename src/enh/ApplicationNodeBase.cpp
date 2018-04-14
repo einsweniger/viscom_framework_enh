@@ -9,11 +9,12 @@
 #include "ApplicationNodeBase.h"
 
 #include "core/glfw.h"
-#include "enh/gfx/mesh/SimpleMeshRenderer.h"
+//#include "enh/gfx/mesh/SimpleMeshRenderer.h"
 #include <glbinding/Binding.h>
 #include <glbinding/callbacks.h>
 #include <glbinding/gl/gl.h>
 #include <glbinding/Meta.h>
+#include <glbinding/FunctionCall.h>
 #include "enh/gfx/gl/GLTexture.h"
 
 void ecb(const glbinding::FunctionCall & call) {
@@ -30,11 +31,11 @@ void ecb(const glbinding::FunctionCall & call) {
     if (call.returnValue)
         callOut << " -> " << call.returnValue->asString();
 
-    LOG(DBUG) << callOut.str();
 
     const auto error = gl::glGetError();
 
     if (gl::GL_NO_ERROR != error) {
+        LOG(DBUG) << callOut.str();
         LOG(WARNING) << "Error: " << glbinding::Meta::getString(error);
     }
 }
@@ -59,7 +60,7 @@ namespace viscom::enh {
 #endif // VISCOM_OGL_DEBUG_MSGS
         }
 
-        simpleMeshes_ = std::make_unique<SimpleMeshRenderer>(this);
+        //simpleMeshes_ = std::make_unique<SimpleMeshRenderer>(this);
 
         cubicWeightsTexture_ = std::make_unique<GLTexture>(256, TextureDescriptor{ 12, gl::GL_RGB32F, gl::GL_RGB, gl::GL_FLOAT });
 
@@ -87,7 +88,7 @@ namespace viscom::enh {
 
     void ApplicationNodeBase::CleanUp()
     {
-        simpleMeshes_ = nullptr;
+        //simpleMeshes_ = nullptr;
         cubicWeightsTexture_ = nullptr;
     }
 

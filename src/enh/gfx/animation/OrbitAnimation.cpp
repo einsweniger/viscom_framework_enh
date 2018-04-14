@@ -46,8 +46,8 @@ namespace viscom::enh {
     {
         const auto winWidth = 250.0f;
         const auto winHeight = 80.0f;
-        ImGui::SetNextWindowSize(ImVec2(winWidth, winHeight), ImGuiSetCond_Always);
-        ImGui::SetNextWindowPos(ImVec2(10.0f, ImGui::GetIO().DisplaySize.y - winHeight - 10.0f), ImGuiSetCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(winWidth, winHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowPos(ImVec2(10.0f, ImGui::GetIO().DisplaySize.y - winHeight - 10.0f), ImGuiCond_Always);
         ImGui::Begin(("Orbit Animation (" + name + ")").c_str());
         ImGui::InputFloat("Frequency", &frequency_);
         ImGui::End();

@@ -111,8 +111,8 @@ namespace viscom::enh {
     {
         const auto winWidth = 250.0f;
         const auto winHeight = 170.0f;
-        ImGui::SetNextWindowSize(ImVec2(winWidth, winHeight), ImGuiSetCond_Always);
-        ImGui::SetNextWindowPos(ImVec2(10.0f, ImGui::GetIO().DisplaySize.y - winHeight - 10.0f), ImGuiSetCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(winWidth, winHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowPos(ImVec2(10.0f, ImGui::GetIO().DisplaySize.y - winHeight - 10.0f), ImGuiCond_Always);
         ImGui::Begin(("Wayppoint Animation (" + name + ")").c_str());
         ImGui::InputFloat("Total Time", &totalTime_);
         ImGui::RadioButton("Linear Interpolation", &interpolationMode_, 0);
