@@ -99,11 +99,11 @@ namespace viscom::enh {
         compositeQuad_{ "dof/composite.frag", app },
         compositeUniformIds_{ compositeQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "cocHalfTex", "cocNearBlurHalfTex", "dofNearHalfTex", "dofFarHalfTex", "hgTex", "blend" }) }
     {
-        params_.focusZ_ = 3.3f;
-        params_.imageDistance_ = 0.005f;
-        params_.fStops_ = 5.6f;
-        params_.fStopsMin_ = 1.8f;
-        params_.fStopsMax_ = 22.0f;
+        params_.focusZ_ = 12.0f;
+        params_.imageDistance_ = 0.034f;
+        params_.fStops_ = 1.6f;
+        params_.fStopsMin_ = 1.5f;
+        params_.fStopsMax_ = 10.0f;
         params_.bokehShape_ = 7;
         params_.rotateBokehMax_ = glm::pi<float>() / 3.0f;
         params_.blendFactor_ = 1.0f;
@@ -323,8 +323,8 @@ namespace viscom::enh {
         auto cocPixelFactor = resX / 0.035f;
         float F = (params_.imageDistance_ * params_.focusZ_) / (params_.imageDistance_ + params_.focusZ_);
         float A = F / params_.fStops_;
-        float cocDiv = passParams.projParams_.y * (F - params_.focusZ_);
-        float cocBias = A * F * ((params_.focusZ_ * passParams.projParams_.x) + passParams.projParams_.y);
+        float cocDiv = passParams.projParams_.y * (params_.focusZ_ - F);
+        float cocBias = A * F * ((params_.focusZ_ * passParams.projParams_.x) - passParams.projParams_.y);
         passParams.cocParams_.x = cocPixelFactor * (A * F * params_.focusZ_) / cocDiv; // coc scale
         passParams.cocParams_.y = cocPixelFactor * cocBias / cocDiv; // coc bias
 

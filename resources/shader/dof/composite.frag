@@ -35,7 +35,7 @@ void main()
 
         vec4 dofFar = sampleBiCubicBilateral(dofFarHalfTex, texCoord, cocFarDiffs);
 
-        float blendWeight = blend * cocFar.x; // should use some non-linear factor here...
+        float blendWeight = clamp(blend * cocFar.x, 0.0, 1.0); // should use some non-linear factor here...
         result = mix(result, dofFar, blendWeight);
     }
 
@@ -43,7 +43,7 @@ void main()
         float cocNear = sampleBiCubic(cocNearBlurHalfTex, texCoord).x;
         vec4 dofNear = sampleBiCubic(dofNearHalfTex, texCoord);
 
-        float blendWeight = blend * cocNear; // should use some non-linear factor here...
+        float blendWeight = clamp(blend * cocNear, 0.0, 1.0); // should use some non-linear factor here...
         result = mix(result, dofNear, blendWeight);
     }
 }
