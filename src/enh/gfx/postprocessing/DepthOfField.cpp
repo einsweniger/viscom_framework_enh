@@ -97,7 +97,7 @@ namespace viscom::enh {
         fillQuad_{ "dof/fill.frag", app },
         fillUniformIds_{ fillQuad_.GetGPUProgram()->GetUniformLocations({ "cocTex", "cocNearBlurTex", "dofNearTex", "dofFarTex" }) },
         compositeQuad_{ "dof/composite.frag", app },
-        compositeUniformIds_{ compositeQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "cocHalfTex", "cocNearBlurHalfTex", "dofNearHalfTex", "dofFarHalfTex", "hgTex", "blend" }) }
+        compositeUniformIds_{ compositeQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "cocHalfTex", "cocNearBlurHalfTex", "dofNearHalfTex", "dofFarHalfTex", "hgTex" }) }
     {
         params_.focusZ_ = 12.0f;
         params_.imageDistance_ = 0.034f;
@@ -106,7 +106,6 @@ namespace viscom::enh {
         params_.fStopsMax_ = 10.0f;
         params_.bokehShape_ = 7;
         params_.rotateBokehMax_ = glm::pi<float>() / 3.0f;
-        params_.blendFactor_ = 1.0f;
 
         FrameBufferDescriptor fullResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) } }, {} }; // CoC near/far/depth
         fullResRTs_ = app_->CreateOffscreenBuffers(fullResRTDesc);
@@ -142,14 +141,13 @@ namespace viscom::enh {
             if (ImGui::InputFloat("f-Stops Max", &params_.fStopsMax_, 0.1f)) recalcBokeh_ = true;
             if (ImGui::InputInt("Bokeh Shape", &params_.bokehShape_)) recalcBokeh_ = true;
             if (ImGui::InputFloat("Max Bokeh Rotation", &params_.rotateBokehMax_, 0.5f)) recalcBokeh_ = true;
-            ImGui::InputFloat("Blend Factor", &params_.blendFactor_, 0.1f);
             ImGui::TreePop();
         }
     }
 
     void DepthOfField::RecalcBokeh()
     {
-        auto f = (params_.fStops_ - params_.fStopsMin_) / (params_.fStopsMax_ - params_.fStopsMin_);
+        auto f = (params_.fStops_ - params_.fStopsMax_) / (params_.fStopsMin_ - params_.fStopsMax_);
         auto bokehRotation = f * params_.rotateBokehMax_;
         auto N = static_cast<float>(params_.bokehShape_);
         auto piDivN = glm::pi<float>() / N;
@@ -296,7 +294,6 @@ namespace viscom::enh {
             gl::glUniform1i(compositeUniformIds_[4], 4);
             gl::glUniform1i(compositeUniformIds_[5], 5);
             gl::glUniform1i(compositeUniformIds_[6], 6);
-            gl::glUniform1f(compositeUniformIds_[7], params_.blendFactor_);
             compositeQuad_.Draw();
         });
     }

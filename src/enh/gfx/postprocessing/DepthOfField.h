@@ -40,7 +40,6 @@ namespace viscom::enh {
         float fStopsMax_;
         int bokehShape_;
         float rotateBokehMax_;
-        float blendFactor_;
 
         template<class Archive> void serialize(Archive& ar, const std::uint32_t) {
             ar(cereal::make_nvp("focusZ", focusZ_),
@@ -49,8 +48,7 @@ namespace viscom::enh {
                 cereal::make_nvp("fStopsMin", fStopsMin_),
                 cereal::make_nvp("fStopsMax", fStopsMax_),
                 cereal::make_nvp("bokehShape", bokehShape_),
-                cereal::make_nvp("rotateBokehMax", rotateBokehMax_),
-                cereal::make_nvp("blendFactor", blendFactor_));
+                cereal::make_nvp("rotateBokehMax", rotateBokehMax_));
         }
     };
 

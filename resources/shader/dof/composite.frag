@@ -9,8 +9,6 @@ uniform sampler2D cocNearBlurHalfTex;
 uniform sampler2D dofNearHalfTex;
 uniform sampler2D dofFarHalfTex;
 
-uniform float blend;
-
 in vec2 texCoord;
 
 layout(location = 0) out vec4 result; // 3 channels
@@ -35,15 +33,15 @@ void main()
 
         vec4 dofFar = sampleBiCubicBilateral(dofFarHalfTex, texCoord, cocFarDiffs);
 
-        float blendWeight = clamp(blend * cocFar.x, 0.0, 1.0); // should use some non-linear factor here...
-        result = mix(result, dofFar, blendWeight);
+        float blendWeight = clamp(pow(cocFar.x, 4), 0.0, 1.0);
+        result = (1.0 - blendWeight) * result + dofFar;
     }
 
     {
         float cocNear = sampleBiCubic(cocNearBlurHalfTex, texCoord).x;
         vec4 dofNear = sampleBiCubic(dofNearHalfTex, texCoord);
 
-        float blendWeight = clamp(blend * cocNear, 0.0, 1.0); // should use some non-linear factor here...
-        result = mix(result, dofNear, blendWeight);
+        float blendWeight = clamp(pow(cocNear, 4), 0.0, 1.0);
+        result = (1.0 - blendWeight) * result + dofNear;
     }
 }
