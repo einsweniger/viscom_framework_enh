@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "core/gfx/FullscreenQuad.h"
 #include <memory>
 #include <vector>
 #include <glm/vec2.hpp>
@@ -62,7 +63,8 @@ namespace viscom::enh {
         ~FilmicTMOperator();
 
         void RenderParameterSliders();
-        void ApplyTonemapping(GLTexture* sourceRT, FrameBuffer& fbo);
+        void ApplyTonemapping(GLuint sourceTex, const FrameBuffer* fbo, std::size_t drawBufferIndex);
+        void ApplyTonemapping(GLuint sourceTex, const FrameBuffer* fbo);
         void Resize(const glm::uvec2& screenSize);
 
         void SetExposure(float exposure) { params_.exposure_ = exposure; }
@@ -77,6 +79,8 @@ namespace viscom::enh {
         }
 
     private:
+        void ApplyTonemappingInternal(GLuint sourceTex);
+
         /** Holds the screen renderable for the tone-mapping. */
         std::unique_ptr<FullscreenQuad> renderable_;
         /** Holds the shader uniform ids. */
