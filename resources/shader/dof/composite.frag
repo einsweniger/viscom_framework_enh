@@ -31,17 +31,20 @@ void main()
         vec4 cocFarHalf = textureGather(cocHalfTex, texCoord, 1).wzxy;
         vec4 cocFarDiffs = abs(cocFar.xxxx - cocFarHalf);
 
+        cocFar = clamp(cocFar, 0.0, 1.0);
         vec4 dofFar = sampleBiCubicBilateral(dofFarHalfTex, texCoord, cocFarDiffs);
 
-        float blendWeight = clamp(pow(cocFar.x, 4), 0.0, 1.0);
-        result = (1.0 - blendWeight) * result + dofFar;
+        float blendWeightDoF = pow(cocFar.x, 3);
+        float blendWeigthResult = blendWeightDoF * cocFar.x;
+        result = (1.0 - blendWeigthResult) * result + blendWeightDoF * dofFar;
     }
 
     {
-        float cocNear = sampleBiCubic(cocNearBlurHalfTex, texCoord).x;
+        float cocNear = clamp(sampleBiCubic(cocNearBlurHalfTex, texCoord).x, 0.0, 1.0);
         vec4 dofNear = sampleBiCubic(dofNearHalfTex, texCoord);
 
-        float blendWeight = clamp(pow(cocNear, 4), 0.0, 1.0);
-        result = (1.0 - blendWeight) * result + dofNear;
+        float blendWeightDoF = pow(cocNear, 3);
+        float blendWeigthResult = blendWeightDoF * cocNear;
+        result = (1.0 - blendWeigthResult) * result + blendWeightDoF * dofNear;
     }
 }
