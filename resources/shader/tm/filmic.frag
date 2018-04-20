@@ -1,4 +1,4 @@
-#version 430
+#version 430 core
 
 struct FilmicParams
 {
@@ -52,11 +52,11 @@ vec3 Uncharted2Tonemap(vec3 x)
 }
 
 void main() {
-    vec3 rgbVal = texture(sourceTex, texCoord).rgb;
+    vec4 rgbaVal = texture(sourceTex, texCoord);
 
-    vec3 curr = 2.0f * Uncharted2Tonemap(filmicParams.exposure*rgbVal);
+    vec3 curr = 2.0f * Uncharted2Tonemap(filmicParams.exposure*rgbaVal.rgb);
     vec3 whiteScale = 1.0f / Uncharted2Tonemap(vec3(filmicParams.white));
     vec3 color = curr*whiteScale;
 
-    outputColor = vec4(color, 1);
+    outputColor = vec4(color, rgbaVal.a);
 }
