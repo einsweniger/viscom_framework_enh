@@ -7,29 +7,37 @@
  */
 
 #include "BloomEffect.h"
+#include "core/gfx/FrameBuffer.h"
 #include "enh/ApplicationNodeBase.h"
 #include "enh/gfx/gl/GLTexture.h"
 #include <imgui.h>
 
 namespace viscom::enh {
 
-    BloomEffect::BloomEffect(const glm::ivec2 sourceSize, ApplicationNodeBase* app) :
-        glareDetectProgram_(app->GetGPUProgramManager().GetResource("tm/glareDetect", std::vector<std::string>{"tm/glareDetect.cp"})),
-        glareUniformIds_(glareDetectProgram_->GetUniformLocations({ "sourceTex", "targetTex", "exposure", "bloomThreshold" })),
-        blurProgram_(app->GetGPUProgramManager().GetResource("tm/blurBloom", std::vector<std::string>{"tm/blurBloom.cp"})),
-        blurUniformIds_(blurProgram_->GetUniformLocations({ "sourceTex", "targetTex", "dir", "bloomWidth" })),
-        combineProgram_(app->GetGPUProgramManager().GetResource("tm/combineBloom_" + std::to_string(NUM_PASSES),
-            std::vector<std::string>{"tm/combineBloom.cp"}, std::vector<std::string>{"NUM_PASSES " + std::to_string(NUM_PASSES)})),
-        combineUniformIds_(combineProgram_->GetUniformLocations({ "sourceTex", "targetTex", "blurTex", "defocus", "bloomIntensity" })),
-        sourceRTSize_(sourceSize)
-    {
-        params_.bloomThreshold_ = 0.63f;
-        params_.bloomWidth_ = 1.0f;
-        params_.defocus_ = 0.2f;
-        params_.bloomIntensity_ = 1.0f;
-        params_.exposure_ = 2.0f;
+    namespace bloom {
+        struct BloomPassParams {
+            GLuint colorTex_;
+            const FrameBuffer* halfResRT_;
+            const FrameBuffer* fourthResRT_;
+        };
+    }
 
-        Resize(sourceSize);
+    BloomEffect::BloomEffect(ApplicationNodeBase* app) :
+        app_{ app },
+        glareDetectQuad_("tm/glareDetect.frag", app),
+        glareUniformIds_(glareDetectQuad_.GetGPUProgram()->GetUniformLocations({ "sourceTex" })),
+        downsampleQuad_("tm/downsampleBloom.frag", app),
+        downsampleUniformIds_(downsampleQuad_.GetGPUProgram()->GetUniformLocations({ "sourceTex" })),
+        blurQuads_{ FullscreenQuad{ "tm/blurBloomX.frag", "tm/blurBloom.frag", std::vector<std::string>{ "HORIZONTAL" }, app },
+            FullscreenQuad{ "tm/blurBloomY.frag", "tm/blurBloom.frag", std::vector<std::string>{ "VERTICAL" }, app } },
+        blurUniformIds_{ blurQuads_[0].GetGPUProgram()->GetUniformLocations({ "sourceTex", "bloomWidth" }), blurQuads_[1].GetGPUProgram()->GetUniformLocations({ "sourceTex", "bloomWidth" }) },
+        combineQuad_("tm/combineBloom.frag", app),
+        combineUniformIds_(combineQuad_.GetGPUProgram()->GetUniformLocations({ "sourceTex", "blurTex", "bloomIntensity" }))
+    {
+        params_.bloomWidth_ = 1.0f;
+        params_.bloomIntensity_ = 0.4f;
+
+        Resize();
     }
 
     BloomEffect::~BloomEffect() = default;
@@ -38,94 +46,128 @@ namespace viscom::enh {
     {
         if (ImGui::TreeNode("Bloom Parameters"))
         {
-            ImGui::InputFloat("Bloom Threshold", &params_.bloomThreshold_, 0.01f);
-            ImGui::InputFloat("Bloom Width", &params_.bloomWidth_, 0.1f);
-            ImGui::InputFloat("Bloom Defocus", &params_.defocus_, 0.01f);
+            ImGui::SliderFloat("Bloom Width", &params_.bloomWidth_, 0.2f, 1.8f);
             ImGui::InputFloat("Bloom Intensity", &params_.bloomIntensity_, 0.1f);
             ImGui::TreePop();
         }
     }
 
-    void BloomEffect::ApplyEffect(GLTexture* sourceRT, GLTexture* targetRT)
+    void BloomEffect::ApplyEffect(GLuint sourceTex, const FrameBuffer* targetFBO, std::size_t drawBufferIndex)
     {
-        const glm::vec2 groupSize{ 32.0f, 16.0f };
+        bloom::BloomPassParams passParams;
+        ApplyEffectInternal(passParams, sourceTex);
 
-        auto targetSize = glm::vec2(sourceRTSize_) / 2.0f;
-        auto numGroups = glm::ivec2(glm::ceil(targetSize / groupSize));
-        gl::glUseProgram(glareDetectProgram_->getProgramId());
-        gl::glUniform1i(glareUniformIds_[0], 0);
-        gl::glUniform1i(glareUniformIds_[1], 0);
-        gl::glUniform1f(glareUniformIds_[2], params_.exposure_);
-        gl::glUniform1f(glareUniformIds_[3], params_.bloomThreshold_);
-        sourceRT->ActivateTexture(gl::GL_TEXTURE0);
-        glaresRT_->ActivateImage(0, 0, gl::GL_WRITE_ONLY);
-        gl::glDispatchCompute(numGroups.x, numGroups.y, 1);
-        gl::glMemoryBarrier(gl::GL_ALL_BARRIER_BITS);
-        gl::glFinish();
+        targetFBO->DrawToFBO(std::vector<std::size_t>{drawBufferIndex}, [this, &passParams]() { CombinePass(passParams); });
+    }
 
-        auto base = 1.0f;
-        auto current = glaresRT_.get();
-        for (auto& blurPassRTs : blurRTs_) {
-            targetSize = glm::vec2(sourceRTSize_) / base;
-            numGroups = glm::ivec2(glm::ceil(targetSize / groupSize));
+    void BloomEffect::ApplyEffect(GLuint sourceTex, const FrameBuffer* targetFBO)
+    {
+        bloom::BloomPassParams passParams;
+        ApplyEffectInternal(passParams, sourceTex);
 
-            gl::glUseProgram(blurProgram_->getProgramId());
-            gl::glUniform1i(blurUniformIds_[0], 0);
-            gl::glUniform1i(blurUniformIds_[1], 0);
-            gl::glUniform2f(blurUniformIds_[2], 1.0f, 0.0f);
-            gl::glUniform1f(blurUniformIds_[3], params_.bloomWidth_);
-            current->ActivateTexture(gl::GL_TEXTURE0);
-            blurPassRTs[0]->ActivateImage(0, 0, gl::GL_WRITE_ONLY);
-            gl::glDispatchCompute(numGroups.x, numGroups.y, 1);
-            gl::glMemoryBarrier(gl::GL_ALL_BARRIER_BITS);
-            gl::glFinish();
+        targetFBO->DrawToFBO([this, &passParams]() { CombinePass(passParams); });
+    }
 
-            gl::glUniform2f(blurUniformIds_[2], 0.0f, 1.0f);
-            blurPassRTs[0]->ActivateTexture(gl::GL_TEXTURE0);
-            blurPassRTs[1]->ActivateImage(0, 0, gl::GL_WRITE_ONLY);
-            gl::glDispatchCompute(numGroups.x, numGroups.y, 1);
+    void BloomEffect::ApplyEffectInternal(bloom::BloomPassParams& passParams, GLuint sourceTex)
+    {
+        passParams.colorTex_ = sourceTex;
+        passParams.halfResRT_ = app_->SelectOffscreenBuffer(glaresHalfRTs_);
+        passParams.fourthResRT_ = app_->SelectOffscreenBuffer(glaresFourthRTs_);
 
-            base *= 2.0f;
-            current = blurPassRTs[1].get();
-        }
+        GlareDetectPass(passParams);
+        DownsamplePass(passParams);
 
-        numGroups = glm::ivec2(glm::ceil(glm::vec2(sourceRTSize_) / groupSize));
+        // blur half
+        BlurPass(passParams.halfResRT_, blurHalfPassDrawBuffers_, 0, 0);
+        BlurPass(passParams.halfResRT_, blurHalfPassDrawBuffers_, 1, 1);
 
-        gl::glMemoryBarrier(gl::GL_ALL_BARRIER_BITS);
-        gl::glFinish();
+        // blur fourth
+        BlurPass(passParams.fourthResRT_, blur1FourthPassDrawBuffers_, 0, 0);
+        BlurPass(passParams.fourthResRT_, blur1FourthPassDrawBuffers_, 1, 2);
 
-        gl::glUseProgram(combineProgram_->getProgramId());
+        BlurPass(passParams.fourthResRT_, blur2FourthPassDrawBuffers_, 0, 0);
+        BlurPass(passParams.fourthResRT_, blur2FourthPassDrawBuffers_, 1, 2);
+    }
+
+    void BloomEffect::GlareDetectPass(const bloom::BloomPassParams& passParams)
+    {
+        passParams.halfResRT_->DrawToFBO(glarePassDrawBuffers_, [this, &passParams] {
+            gl::glUseProgram(glareDetectQuad_.GetGPUProgram()->getProgramId());
+            gl::glUniform1i(glareUniformIds_[0], 0);
+            gl::glActiveTexture(gl::GL_TEXTURE0);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.colorTex_);
+            glareDetectQuad_.Draw();
+        });
+    }
+
+    void BloomEffect::DownsamplePass(const bloom::BloomPassParams& passParams)
+    {
+        passParams.fourthResRT_->DrawToFBO(dsPassDrawBuffers_, [this, &passParams] {
+            gl::glUseProgram(downsampleQuad_.GetGPUProgram()->getProgramId());
+            gl::glUniform1i(downsampleUniformIds_[0], 0);
+            gl::glActiveTexture(gl::GL_TEXTURE0);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.halfResRT_->GetTextures()[0]);
+            downsampleQuad_.Draw();
+        });
+    }
+
+    void BloomEffect::BlurPass(const FrameBuffer* fbo, const std::array<std::vector<std::size_t>, 2>& drawBuffers, std::size_t pass, std::size_t sourceTex)
+    {
+       fbo->DrawToFBO(drawBuffers[pass], [this, fbo, pass, sourceTex] {
+            gl::glUseProgram(blurQuads_[pass].GetGPUProgram()->getProgramId());
+
+            gl::glActiveTexture(gl::GL_TEXTURE0);
+            gl::glBindTexture(gl::GL_TEXTURE_2D, fbo->GetTextures()[sourceTex]);
+
+            gl::glUniform1i(blurUniformIds_[pass][0], 0);
+            gl::glUniform1f(blurUniformIds_[pass][1], params_.bloomWidth_);
+            blurQuads_[pass].Draw();
+        });
+    }
+
+    void BloomEffect::CombinePass(const bloom::BloomPassParams& passParams)
+    {
+        gl::glUseProgram(combineQuad_.GetGPUProgram()->getProgramId());
+        gl::glActiveTexture(gl::GL_TEXTURE0);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.colorTex_);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 1);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.halfResRT_->GetTextures()[0]);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 2);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.fourthResRT_->GetTextures()[0]);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 3);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.fourthResRT_->GetTextures()[1]);
+
+        std::array<int, 3> blurTextureUnitIds{ 1, 2, 3 };
         gl::glUniform1i(combineUniformIds_[0], 0);
-        gl::glUniform1i(combineUniformIds_[1], 0);
-        gl::glUniform1iv(combineUniformIds_[2], static_cast<GLsizei>(blurTextureUnitIds_.size()), blurTextureUnitIds_.data());
-        gl::glUniform1f(combineUniformIds_[3], params_.defocus_);
-        gl::glUniform1f(combineUniformIds_[4], params_.bloomIntensity_);
-        sourceRT->ActivateTexture(gl::GL_TEXTURE0);
-        for (unsigned int i = 0; i < NUM_PASSES; ++i) {
-            blurRTs_[i][1]->ActivateTexture(gl::GL_TEXTURE1 + i);
-        }
-        targetRT->ActivateImage(0, 0, gl::GL_WRITE_ONLY);
-        gl::glDispatchCompute(numGroups.x, numGroups.y, 1);
-        gl::glMemoryBarrier(gl::GL_ALL_BARRIER_BITS);
-        gl::glFinish();
+        gl::glUniform1iv(combineUniformIds_[1], static_cast<GLsizei>(blurTextureUnitIds.size()), blurTextureUnitIds.data());
+        gl::glUniform1f(combineUniformIds_[2], params_.bloomIntensity_);
+
+        combineQuad_.Draw();
     }
 
-    void BloomEffect::Resize(const glm::uvec2& screenSize)
+    void BloomEffect::Resize()
     {
-        blurTextureUnitIds_.clear();
-        sourceRTSize_ = screenSize;
-        TextureDescriptor texDesc{ 16, gl::GL_RGBA32F, gl::GL_RGBA, gl::GL_FLOAT };
-        glm::uvec2 size(screenSize.x / 2, screenSize.y / 2);
-        glaresRT_ = std::make_unique<GLTexture>(size.x, size.y, texDesc, nullptr);
+        FrameBufferDescriptor glareDetectHalfRTDesc{ { 
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGBA32F) }, // 0: glare half, blur pong
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGBA32F) } // 0: glare half, blur ping
+            },{} };
+        glaresHalfRTs_ = app_->CreateOffscreenBuffers(glareDetectHalfRTDesc, 2);
 
-        unsigned int base = 1;
-        auto blurTexUnit = 0;
-        for (auto& blurPassRTs : blurRTs_) {
-            blurTextureUnitIds_.emplace_back(++blurTexUnit);
-            glm::uvec2 sizeBlurRT(glm::max(size.x / base, 1u), glm::max(size.y / base, 1u));
-            blurPassRTs[0] = std::make_unique<GLTexture>(sizeBlurRT.x, sizeBlurRT.y, texDesc, nullptr);
-            blurPassRTs[1] = std::make_unique<GLTexture>(sizeBlurRT.x, sizeBlurRT.y, texDesc, nullptr);
-            base *= 2;
-        }
+        FrameBufferDescriptor glareDetectFourthRTDesc{ {
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGBA32F) }, // 0: glare fourth, blur pong
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGBA32F) }, // 0: glare fourth, blur 2 pong
+                FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGBA32F) } // 0: glare fourth, blur ping
+            },{} };
+        glaresFourthRTs_ = app_->CreateOffscreenBuffers(glareDetectFourthRTDesc, 4);
+
+        glarePassDrawBuffers_ = { 0 };
+        blurHalfPassDrawBuffers_[0] = { 1 };
+        blurHalfPassDrawBuffers_[1] = { 0 };
+        dsPassDrawBuffers_ = { 0 };
+        blur1FourthPassDrawBuffers_[0] = { 2 };
+        blur1FourthPassDrawBuffers_[1] = { 0 };
+        blur2FourthPassDrawBuffers_[0] = { 2 };
+        blur2FourthPassDrawBuffers_[1] = { 1 };
     }
+
 }

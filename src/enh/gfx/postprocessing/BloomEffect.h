@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "core/gfx/FullscreenQuad.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -17,8 +18,8 @@
 #include <cereal/access.hpp>
 
 namespace viscom {
-
     class GPUProgram;
+    class FrameBuffer;
 }
 
 namespace viscom::enh {
@@ -26,19 +27,18 @@ namespace viscom::enh {
     class ApplicationNodeBase;
     class GLTexture;
 
+
+    namespace bloom {
+        struct BloomPassParams;
+    }
+
     struct BloomParams
     {
-        float exposure_;
-        float bloomThreshold_;
         float bloomWidth_;
-        float defocus_;
         float bloomIntensity_;
 
         template<class Archive> void serialize(Archive& ar, const std::uint32_t) {
-            ar(cereal::make_nvp("exposure", exposure_),
-                cereal::make_nvp("bloomThreshold", bloomThreshold_),
-                cereal::make_nvp("bloomWidth", bloomWidth_),
-                cereal::make_nvp("defocus", defocus_),
+            ar(cereal::make_nvp("bloomWidth", bloomWidth_),
                 cereal::make_nvp("bloomIntensity", bloomIntensity_));
         }
     };
@@ -46,15 +46,13 @@ namespace viscom::enh {
     class BloomEffect
     {
     public:
-        explicit BloomEffect(const glm::ivec2 sourceSize, ApplicationNodeBase* app);
+        explicit BloomEffect(ApplicationNodeBase* app);
         ~BloomEffect();
 
         void RenderParameterSliders();
-        void ApplyEffect(GLTexture* sourceRT, GLTexture* targetRT);
-        void Resize(const glm::uvec2& screenSize);
-
-        void SetExposure(float exposure) { params_.exposure_ = exposure; }
-        float GetExposure() const { return params_.exposure_; }
+        void ApplyEffect(GLuint sourceTex, const FrameBuffer* targetFBO, std::size_t drawBufferIndex);
+        void ApplyEffect(GLuint sourceTex, const FrameBuffer* targetFBO);
+        void Resize();
 
         template<class Archive> void SaveParameters(Archive& ar, const std::uint32_t) const {
             ar(cereal::make_nvp("params", params_));
@@ -65,32 +63,50 @@ namespace viscom::enh {
         }
 
     private:
-        using BlurPassTargets = std::array<std::unique_ptr<GLTexture>, 2>;
-        static constexpr unsigned int NUM_PASSES = 6;
+        void ApplyEffectInternal(bloom::BloomPassParams& passParams, GLuint sourceTex);
+        void GlareDetectPass(const bloom::BloomPassParams& passParams);
+        void DownsamplePass(const bloom::BloomPassParams& passParams);
+        void BlurPass(const FrameBuffer* fbo, const std::array<std::vector<std::size_t>, 2>& drawBuffers, std::size_t pass, std::size_t sourceTex);
+        void CombinePass(const bloom::BloomPassParams& passParams);
 
-        /** Holds the render target for HDR rendering. */
-        std::unique_ptr<GLTexture> glaresRT_;
-        /** Holds the temporary results of the blurring. */
-        std::array<BlurPassTargets, NUM_PASSES> blurRTs_;
+        /** Holds the base application object. */
+        ApplicationNodeBase* app_;
+
+        /** Holds the frame buffers for glare detection. */
+        std::vector<FrameBuffer> glaresHalfRTs_;
+        /** Holds the frame buffers for glare detection. */
+        std::vector<FrameBuffer> glaresFourthRTs_;
+
         /** Holds the bloom parameters. */
         BloomParams params_;
 
-        /** Holds the GPU program used for glare detection. */
-        std::shared_ptr<GPUProgram> glareDetectProgram_;
+        /** Holds the full screen quad used for glare detection. */
+        FullscreenQuad glareDetectQuad_;
         /** Holds the glare program uniform ids. */
         std::vector<gl::GLint> glareUniformIds_;
-        /** Holds the GPU program used for blurring. */
-        std::shared_ptr<GPUProgram> blurProgram_;
+        /** Holds the full screen quad used for down sampling. */
+        FullscreenQuad downsampleQuad_;
+        /** Holds the down sampling program uniform ids. */
+        std::vector<gl::GLint> downsampleUniformIds_;
+        /** Holds the full screen quad used for blurring. */
+        std::array<FullscreenQuad, 2> blurQuads_;
         /** Holds the blur program uniform ids. */
-        std::vector<gl::GLint> blurUniformIds_;
-        /** Holds the GPU program used for combining the final image. */
-        std::shared_ptr<GPUProgram> combineProgram_;
-        /** Holds the combine program uniform ids. */
+        std::array<std::vector<gl::GLint>, 2> blurUniformIds_;
+        /** Holds the full screen quad used for combining. */
+        FullscreenQuad combineQuad_;
+        /** Holds the combining program uniform ids. */
         std::vector<gl::GLint> combineUniformIds_;
-        /** Holds the number of compute groups. */
-        glm::ivec2 sourceRTSize_;
-        /** Holds the texture unit ids to bind the blur textures to. */
-        std::vector<int> blurTextureUnitIds_;
+
+        /** The draw buffers used in the glare pass. */
+        std::vector<std::size_t> glarePassDrawBuffers_;
+        /** The draw buffers used in the blur half resolution pass. */
+        std::array<std::vector<std::size_t>, 2> blurHalfPassDrawBuffers_;
+        /** The draw buffers used in the down sample pass. */
+        std::vector<std::size_t> dsPassDrawBuffers_;
+        /** The draw buffers used in the first blur fourth resolution pass. */
+        std::array<std::vector<std::size_t>, 2> blur1FourthPassDrawBuffers_;
+        /** The draw buffers used in the second blur fourth resolution pass. */
+        std::array<std::vector<std::size_t>, 2> blur2FourthPassDrawBuffers_;
     };
 }
 
