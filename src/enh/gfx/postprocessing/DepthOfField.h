@@ -59,6 +59,7 @@ namespace viscom::enh {
         ~DepthOfField();
 
         void RenderParameterSliders();
+        void ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const FrameBuffer* targetFBO, std::size_t drawBufferIndex);
         void ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const FrameBuffer* targetFBO);
 
         template<class Archive> void SaveParameters(Archive& ar, const std::uint32_t) const {
@@ -70,6 +71,7 @@ namespace viscom::enh {
         }
 
     private:
+        void ApplyEffectInternal(dof::DoFPassParams& passParams, const CameraHelper& cam, float resX, GLuint colorTex, GLuint depthTex);
         void RecalcBokeh();
         void CoCPass(const dof::DoFPassParams& passParams);
         void DownsamplePass(const dof::DoFPassParams& passParams);
@@ -77,7 +79,7 @@ namespace viscom::enh {
         void NearCoCBlurPass(const dof::DoFPassParams& passParams, std::size_t pass, std::size_t sourceTex);
         void ComputeDoFPass(const dof::DoFPassParams& passParams);
         void FillPass(const dof::DoFPassParams& passParams);
-        void CompositePass(const dof::DoFPassParams& passParams, const FrameBuffer* targetFBO);
+        void CompositePass(const dof::DoFPassParams& passParams);
 
         /** Holds the base application object. */
         ApplicationNodeBase* app_;
