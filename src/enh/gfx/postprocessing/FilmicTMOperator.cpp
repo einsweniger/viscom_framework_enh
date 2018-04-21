@@ -18,7 +18,7 @@ namespace viscom::enh {
     FilmicTMOperator::FilmicTMOperator(ApplicationNodeBase* app) :
         renderable_(app->CreateFullscreenQuad("tm/filmic.frag")),
         uniformIds_(renderable_->GetGPUProgram()->GetUniformLocations({ "sourceTex" })),
-        filmicUBO_(new GLUniformBuffer("filmicBuffer", sizeof(FilmicTMParameters), app->GetUBOBindingPoints()))
+        filmicUBO_(std::make_unique<GLUniformBuffer>("filmicBuffer", sizeof(FilmicTMParameters), app->GetUBOBindingPoints()))
     {
         params_.sStrength_ = 0.15f;
         params_.linStrength_ = 0.5f;

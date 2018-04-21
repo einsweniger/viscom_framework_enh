@@ -55,13 +55,13 @@ namespace viscom::enh {
         return *this;
     }
 
-    void GLBuffer::InitializeData(unsigned int size, const void* data)
+    void GLBuffer::InitializeData(std::size_t size, const void* data)
     {
         bufferSize_ = size;
         gl::glNamedBufferData(buffer_, size, data, usage_);
     }
 
-    void GLBuffer::UploadData(unsigned int offset, unsigned int size, const void* data)
+    void GLBuffer::UploadData(std::size_t offset, std::size_t size, const void* data)
     {
         if (offset + size > bufferSize_) {
             std::vector<int8_t> tmp(offset);
@@ -74,7 +74,7 @@ namespace viscom::enh {
         gl::glNamedBufferSubData(buffer_, offset, size, data);
     }
 
-    void GLBuffer::DownloadData(unsigned int size, void* data) const
+    void GLBuffer::DownloadData(std::size_t size, void* data) const
     {
         gl::glGetNamedBufferSubData(buffer_, 0, size, data);
     }

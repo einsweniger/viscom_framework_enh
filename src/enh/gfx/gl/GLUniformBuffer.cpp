@@ -30,7 +30,7 @@ namespace viscom::enh {
      * @param size the size of the uniform buffer
      * @param bindings the binding points used to bind the buffer to
      */
-    GLUniformBuffer::GLUniformBuffer(const std::string& name, unsigned int size,
+    GLUniformBuffer::GLUniformBuffer(const std::string& name, std::size_t size,
         ShaderBufferBindingPoints* bindings) :
         GLUniformBuffer(name, bindings)
     {
@@ -97,7 +97,7 @@ namespace viscom::enh {
      * @param size the size of the data
      * @param data the data to store in the buffer
      */
-    void GLUniformBuffer::UploadData(unsigned int offset, unsigned int size, const void* data)
+    void GLUniformBuffer::UploadData(std::size_t offset, std::size_t size, const void* data)
     {
         assert((offset + size) <= buffer_->GetBufferSize());
         buffer_->UploadData(offset, size, data);
