@@ -65,7 +65,6 @@ namespace viscom::enh {
         void RenderParameterSliders();
         void ApplyTonemapping(GLuint sourceTex, const FrameBuffer* fbo, std::size_t drawBufferIndex);
         void ApplyTonemapping(GLuint sourceTex, const FrameBuffer* fbo);
-        void Resize(const glm::uvec2& screenSize);
 
         void SetExposure(float exposure) { params_.exposure_ = exposure; }
         float GetExposure() const { return params_.exposure_; }

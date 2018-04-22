@@ -60,12 +60,6 @@ namespace viscom::enh {
         }
     }
 
-    // ReSharper disable once CppMemberFunctionMayBeStatic
-    // ReSharper disable once CppMemberFunctionMayBeConst
-    void FilmicTMOperator::Resize(const glm::uvec2&)
-    {
-    }
-
     void FilmicTMOperator::ApplyTonemappingInternal(GLuint sourceTex)
     {
         filmicUBO_->UploadData(0, sizeof(FilmicTMParameters), &params_);
