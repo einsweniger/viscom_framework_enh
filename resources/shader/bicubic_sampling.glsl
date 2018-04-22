@@ -23,10 +23,10 @@ vec4 sampleBiCubic(sampler2D tex, vec2 coords) {
     texSourceA[2] = texture(tex, coordsA[2]);
     texSourceA[3] = texture(tex, coordsA[3]);
 
-    texSourceA[0] = mix(texSourceA[0], texSourceA[2], hgY.z);
-    texSourceA[1] = mix(texSourceA[1], texSourceA[3], hgY.z);
+    texSourceA[0] = mix(texSourceA[2], texSourceA[0], hgY.z);
+    texSourceA[1] = mix(texSourceA[3], texSourceA[1], hgY.z);
 
-    return mix(texSourceA[0], texSourceA[1], hgX.z);
+    return mix(texSourceA[1], texSourceA[0], hgX.z);
 }
 
 vec4 sampleBiCubicBilateral(sampler2D tex, vec2 coords, vec4 bilateralWeights) {
@@ -56,10 +56,10 @@ vec4 sampleBiCubicBilateral(sampler2D tex, vec2 coords, vec4 bilateralWeights) {
     texSourceA[3] = texture(tex, coordsA[3]);
 
     float weightsA[4]; // bilateral?
-    weightsA[0] = ((1.0f - hgY.z) * (1.0f - hgX.z)) / (bilateralWeights.x + 0.001f);
-    weightsA[1] = ((1.0f - hgY.z) * hgX.z) / (bilateralWeights.y + 0.001f);
-    weightsA[2] = (hgY.z * (1.0f - hgX.z)) / (bilateralWeights.z + 0.001f);
-    weightsA[3] = (hgY.z * hgX.z) / (bilateralWeights.w + 0.001f);
+    weightsA[0] = (hgY.z * hgX.z) / (bilateralWeights.x + 0.001f);
+    weightsA[1] = (hgY.z * (1.0f - hgX.z)) / (bilateralWeights.y + 0.001f);
+    weightsA[2] = ((1.0f - hgY.z) * hgX.z) / (bilateralWeights.z + 0.001f);
+    weightsA[3] = ((1.0f - hgY.z) * (1.0f - hgX.z)) / (bilateralWeights.w + 0.001f);
 
     float weightsSum = weightsA[0] + weightsA[1] + weightsA[2] + weightsA[3];
 

@@ -16,9 +16,9 @@
 namespace viscom::enh {
 
     FilmicTMOperator::FilmicTMOperator(ApplicationNodeBase* app) :
-        renderable_(app->CreateFullscreenQuad("tm/filmic.fp")),
+        renderable_(app->CreateFullscreenQuad("tm/filmic.frag")),
         uniformIds_(renderable_->GetGPUProgram()->GetUniformLocations({ "sourceTex" })),
-        filmicUBO_(new GLUniformBuffer("filmicBuffer", sizeof(FilmicTMParameters), app->GetUBOBindingPoints()))
+        filmicUBO_(std::make_unique<GLUniformBuffer>("filmicBuffer", sizeof(FilmicTMParameters), app->GetUBOBindingPoints()))
     {
         params_.sStrength_ = 0.15f;
         params_.linStrength_ = 0.5f;
@@ -58,8 +58,6 @@ namespace viscom::enh {
             ImGui::InputFloat("White", &params_.white_, 0.1f);
             ImGui::TreePop();
         }
-        // no gamma on sRGB targets
-        // TwAddVarRW(bar, "Gamma", TW_TYPE_FLOAT, &params.gamma, " label='Gamma' min=1.0 max=3.0 step=0.1");
     }
 
     // ReSharper disable once CppMemberFunctionMayBeStatic
@@ -68,17 +66,27 @@ namespace viscom::enh {
     {
     }
 
-    void FilmicTMOperator::ApplyTonemapping(GLTexture* sourceRT, FrameBuffer& fbo)
+    void FilmicTMOperator::ApplyTonemappingInternal(GLuint sourceTex)
     {
         filmicUBO_->UploadData(0, sizeof(FilmicTMParameters), &params_);
         filmicUBO_->BindBuffer();
 
-        fbo.DrawToFBO([this, sourceRT]() {
-            gl::glUseProgram(renderable_->GetGPUProgram()->getProgramId());
-            sourceRT->ActivateTexture(gl::GL_TEXTURE0);
-            gl::glUniform1i(uniformIds_[0], 0);
-            renderable_->Draw();
-            gl::glUseProgram(0);
-        });
+        gl::glUseProgram(renderable_->GetGPUProgram()->getProgramId());
+
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 0);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, sourceTex);
+        gl::glUniform1i(uniformIds_[0], 0);
+        renderable_->Draw();
+        gl::glUseProgram(0);
+    }
+
+    void FilmicTMOperator::ApplyTonemapping(GLuint sourceTex, const FrameBuffer* fbo, std::size_t drawBufferIndex)
+    {
+        fbo->DrawToFBO(std::vector<std::size_t>{drawBufferIndex}, [this, sourceTex]() { ApplyTonemappingInternal(sourceTex); });
+    }
+
+    void FilmicTMOperator::ApplyTonemapping(GLuint sourceTex, const FrameBuffer* fbo)
+    {
+        fbo->DrawToFBO([this, sourceTex]() { ApplyTonemappingInternal(sourceTex); });
     }
 }

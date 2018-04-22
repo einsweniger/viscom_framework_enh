@@ -27,7 +27,7 @@ namespace viscom::enh {
     class GLUniformBuffer final
     {
     public:
-        GLUniformBuffer(const std::string& name, unsigned int size, ShaderBufferBindingPoints* bindings);
+        GLUniformBuffer(const std::string& name, std::size_t size, ShaderBufferBindingPoints* bindings);
         GLUniformBuffer(const GLUniformBuffer&);
         GLUniformBuffer& operator=(const GLUniformBuffer&);
         GLUniformBuffer(GLUniformBuffer&&);
@@ -36,7 +36,7 @@ namespace viscom::enh {
 
         GLBuffer* GetBuffer() { return buffer_; }
         const GLBuffer* GetBuffer() const { return buffer_; }
-        void UploadData(unsigned int offset, unsigned int size, const void* data);
+        void UploadData(std::size_t offset, std::size_t size, const void* data);
         void BindBuffer() const;
         ShaderBufferBindingPoints* GetBindingPoints() const { return bindingPoints_; }
         const std::string& GetUBOName() const { return uboName_; }

@@ -24,38 +24,38 @@ namespace viscom::enh {
         GLBuffer(GLBuffer&&);
         GLBuffer& operator=(GLBuffer&&);
 
-        void InitializeData(unsigned int size, const void* data);
-        void UploadData(unsigned int offset, unsigned int size, const void* data);
-        void DownloadData(unsigned int size, void* data) const;
+        void InitializeData(std::size_t size, const void* data);
+        void UploadData(std::size_t offset, std::size_t size, const void* data);
+        void DownloadData(std::size_t size, void* data) const;
 
-        unsigned int GetBufferSize() const { return bufferSize_; }
+        std::size_t GetBufferSize() const { return bufferSize_; }
         const BufferRAII& GetBuffer() const { return buffer_; }
 
         template<class T> std::enable_if_t<has_contiguous_memory<T>::value> InitializeData(const T& data);
-        template<class T> std::enable_if_t<has_contiguous_memory<T>::value> UploadData(unsigned offset, const T& data);
+        template<class T> std::enable_if_t<has_contiguous_memory<T>::value> UploadData(std::size_t offset, const T& data);
         template<class T> std::enable_if_t<has_contiguous_memory<T>::value>  DownloadData(T& data) const;
 
     private:
         /** Holds the buffer object name. */
         BufferRAII buffer_;
         /** Holds the current size of the buffer in bytes. */
-        unsigned int bufferSize_;
+        std::size_t bufferSize_;
         /** Holds the buffer usage. */
         gl::GLenum usage_;
     };
 
     template <class T> std::enable_if_t<has_contiguous_memory<T>::value> GLBuffer::InitializeData(const T& data)
     {
-        InitializeData(static_cast<unsigned int>(sizeof(typename T::value_type) * data.size()), data.data());
+        InitializeData(sizeof(typename T::value_type) * data.size(), data.data());
     }
 
-    template <class T> std::enable_if_t<has_contiguous_memory<T>::value> GLBuffer::UploadData(unsigned offset, const T& data)
+    template <class T> std::enable_if_t<has_contiguous_memory<T>::value> GLBuffer::UploadData(std::size_t offset, const T& data)
     {
-        UploadData(offset, static_cast<unsigned int>(sizeof(typename T::value_type) * data.size()), data.data());
+        UploadData(offset, sizeof(typename T::value_type) * data.size(), data.data());
     }
 
     template <class T> std::enable_if_t<has_contiguous_memory<T>::value> GLBuffer::DownloadData(T& data) const
     {
-        DownloadData(static_cast<unsigned int>(sizeof(typename T::value_type) * data.size()), data.data());
+        DownloadData(sizeof(typename T::value_type) * data.size(), data.data());
     }
 }

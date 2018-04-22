@@ -24,7 +24,7 @@ void main()
     float cocFarA[4];
     float depthMin = 1000000000.0f;
     cocHalf = vec4(0.0f, 1000000000.0f, 0.0f, 0.0f);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i <= 3; ++i) {
         colorA[i] = texelFetch(colorTex, iTexCoordA[i], 0).rgb;
         vec3 coc = texelFetch(cocTex, iTexCoordA[i], 0).rgb;
         depthA[i] = coc.z;
@@ -38,7 +38,7 @@ void main()
     float cocWSum = 0.0f;
     colorHalf = vec4(0.0f);
     colorMulCoCFarHalf = vec4(0.0f);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i <= 3; ++i) {
         float depthW = 1.0f / (abs(depthA[i] - depthMin) + 0.001f);
         depthWSum += depthW;
         colorHalf.xyz += depthW * colorA[i];

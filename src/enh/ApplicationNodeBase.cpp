@@ -9,34 +9,33 @@
 #include "ApplicationNodeBase.h"
 
 #include "core/glfw.h"
-//#include "enh/gfx/mesh/SimpleMeshRenderer.h"
-#include <glbinding/Binding.h>
-#include <glbinding/callbacks.h>
 #include <glbinding/gl/gl.h>
-#include <glbinding/Meta.h>
-#include <glbinding/FunctionCall.h>
+#include <glbinding/Binding.h>
+#include <glbinding/glbinding.h>
+#include <glbinding-aux/Meta.h>
+#include <glbinding-aux/types_to_string.h>
 #include "enh/gfx/gl/GLTexture.h"
 
 void ecb(const glbinding::FunctionCall & call) {
     std::stringstream callOut;
     callOut << call.function->name() << "(";
-    for (unsigned i = 0; i < call.parameters.size(); ++i)
-    {
-        callOut << call.parameters[i]->asString();
+    for (unsigned i = 0; i < call.parameters.size(); ++i) {
+        // callOut << call.parameters[i]->asString();
+        callOut << call.parameters[i].get();
         if (i < call.parameters.size() - 1)
             callOut << ", ";
     }
     callOut << ")";
 
     if (call.returnValue)
-        callOut << " -> " << call.returnValue->asString();
+        callOut << " -> " << call.returnValue.get();
 
+    LOG(DBUG) << callOut.str();
 
     const auto error = gl::glGetError();
 
     if (gl::GL_NO_ERROR != error) {
-        LOG(DBUG) << callOut.str();
-        LOG(WARNING) << "Error: " << glbinding::Meta::getString(error);
+        LOG(WARNING) << "Error: " << glbinding::aux::Meta::getString(error);
     }
 }
 
@@ -53,7 +52,7 @@ namespace viscom::enh {
     {
         {
             using namespace glbinding;
-            Binding::initialize();
+            Binding::initialize([](const char * name) { return glfwGetProcAddress(name); }, false);
 #ifdef VISCOM_OGL_DEBUG_MSGS
             setCallbackMaskExcept(CallbackMask::After | CallbackMask::ParametersAndReturnValue, { "glGetError" });
             setAfterCallback(ecb);

@@ -97,16 +97,15 @@ namespace viscom::enh {
         fillQuad_{ "dof/fill.frag", app },
         fillUniformIds_{ fillQuad_.GetGPUProgram()->GetUniformLocations({ "cocTex", "cocNearBlurTex", "dofNearTex", "dofFarTex" }) },
         compositeQuad_{ "dof/composite.frag", app },
-        compositeUniformIds_{ compositeQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "cocHalfTex", "cocNearBlurHalfTex", "dofNearHalfTex", "dofFarHalfTex", "hgTex", "blend" }) }
+        compositeUniformIds_{ compositeQuad_.GetGPUProgram()->GetUniformLocations({ "colorTex", "cocTex", "cocHalfTex", "cocNearBlurHalfTex", "dofNearHalfTex", "dofFarHalfTex", "hgTex" }) }
     {
-        params_.focusZ_ = 3.3f;
-        params_.imageDistance_ = 0.005f;
-        params_.fStops_ = 5.6f;
-        params_.fStopsMin_ = 1.8f;
-        params_.fStopsMax_ = 22.0f;
+        params_.focusZ_ = 12.0f;
+        params_.imageDistance_ = 0.034f;
+        params_.fStops_ = 1.6f;
+        params_.fStopsMin_ = 1.5f;
+        params_.fStopsMax_ = 10.0f;
         params_.bokehShape_ = 7;
         params_.rotateBokehMax_ = glm::pi<float>() / 3.0f;
-        params_.blendFactor_ = 1.0f;
 
         FrameBufferDescriptor fullResRTDesc{ { FrameBufferTextureDescriptor{ static_cast<GLenum>(gl::GL_RGB32F) } }, {} }; // CoC near/far/depth
         fullResRTs_ = app_->CreateOffscreenBuffers(fullResRTDesc);
@@ -142,14 +141,13 @@ namespace viscom::enh {
             if (ImGui::InputFloat("f-Stops Max", &params_.fStopsMax_, 0.1f)) recalcBokeh_ = true;
             if (ImGui::InputInt("Bokeh Shape", &params_.bokehShape_)) recalcBokeh_ = true;
             if (ImGui::InputFloat("Max Bokeh Rotation", &params_.rotateBokehMax_, 0.5f)) recalcBokeh_ = true;
-            ImGui::InputFloat("Blend Factor", &params_.blendFactor_, 0.1f);
             ImGui::TreePop();
         }
     }
 
     void DepthOfField::RecalcBokeh()
     {
-        auto f = (params_.fStops_ - params_.fStopsMin_) / (params_.fStopsMax_ - params_.fStopsMin_);
+        auto f = (params_.fStops_ - params_.fStopsMax_) / (params_.fStopsMin_ - params_.fStopsMax_);
         auto bokehRotation = f * params_.rotateBokehMax_;
         auto N = static_cast<float>(params_.bokehShape_);
         auto piDivN = glm::pi<float>() / N;
@@ -270,40 +268,36 @@ namespace viscom::enh {
         });
     }
 
-    void DepthOfField::CompositePass(const dof::DoFPassParams& passParams, const FrameBuffer* targetFBO)
+    void DepthOfField::CompositePass(const dof::DoFPassParams& passParams)
     {
-        targetFBO->DrawToFBO([this, &passParams]() {
-            gl::glUseProgram(compositeQuad_.GetGPUProgram()->getProgramId());
+        gl::glUseProgram(compositeQuad_.GetGPUProgram()->getProgramId());
 
-            gl::glActiveTexture(gl::GL_TEXTURE0 + 0);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.colorTex_);
-            gl::glActiveTexture(gl::GL_TEXTURE0 + 1);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.fullResRT_->GetTextures()[0]);
-            gl::glActiveTexture(gl::GL_TEXTURE0 + 2);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[4]);
-            gl::glActiveTexture(gl::GL_TEXTURE0 + 3);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[6]);
-            gl::glActiveTexture(gl::GL_TEXTURE0 + 4);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[0]);
-            gl::glActiveTexture(gl::GL_TEXTURE0 + 5);
-            gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[1]);
-            app_->GetCubicWeightsTexture().ActivateTexture(gl::GL_TEXTURE0 + 6);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 0);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.colorTex_);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 1);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.fullResRT_->GetTextures()[0]);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 2);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[4]);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 3);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[6]);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 4);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[0]);
+        gl::glActiveTexture(gl::GL_TEXTURE0 + 5);
+        gl::glBindTexture(gl::GL_TEXTURE_2D, passParams.lowResRT_->GetTextures()[1]);
+        app_->GetCubicWeightsTexture().ActivateTexture(gl::GL_TEXTURE0 + 6);
 
-            gl::glUniform1i(compositeUniformIds_[0], 0);
-            gl::glUniform1i(compositeUniformIds_[1], 1);
-            gl::glUniform1i(compositeUniformIds_[2], 2);
-            gl::glUniform1i(compositeUniformIds_[3], 3);
-            gl::glUniform1i(compositeUniformIds_[4], 4);
-            gl::glUniform1i(compositeUniformIds_[5], 5);
-            gl::glUniform1i(compositeUniformIds_[6], 6);
-            gl::glUniform1f(compositeUniformIds_[7], params_.blendFactor_);
-            compositeQuad_.Draw();
-        });
+        gl::glUniform1i(compositeUniformIds_[0], 0);
+        gl::glUniform1i(compositeUniformIds_[1], 1);
+        gl::glUniform1i(compositeUniformIds_[2], 2);
+        gl::glUniform1i(compositeUniformIds_[3], 3);
+        gl::glUniform1i(compositeUniformIds_[4], 4);
+        gl::glUniform1i(compositeUniformIds_[5], 5);
+        gl::glUniform1i(compositeUniformIds_[6], 6);
+        compositeQuad_.Draw();
     }
 
-    void DepthOfField::ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const FrameBuffer* targetFBO)
+    void DepthOfField::ApplyEffectInternal(dof::DoFPassParams& passParams, const CameraHelper& cam, float resX, GLuint colorTex, GLuint depthTex)
     {
-        dof::DoFPassParams passParams;
         passParams.colorTex_ = colorTex;
         passParams.depthTex_ = depthTex;
         passParams.fullResRT_ = app_->SelectOffscreenBuffer(fullResRTs_);
@@ -316,15 +310,11 @@ namespace viscom::enh {
         // also https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch23.html
         // and http://www.crytek.com/download/Sousa_Graphics_Gems_CryENGINE3.pdf
 
-        // auto resY = static_cast<float>(targetFBO->GetHeight());
-        auto resX = static_cast<float>(targetFBO->GetHeight());
-        // auto aspect = resY / resX;
-        // auto filmY = 0.035f * aspect;
         auto cocPixelFactor = resX / 0.035f;
         float F = (params_.imageDistance_ * params_.focusZ_) / (params_.imageDistance_ + params_.focusZ_);
         float A = F / params_.fStops_;
-        float cocDiv = passParams.projParams_.y * (F - params_.focusZ_);
-        float cocBias = A * F * ((params_.focusZ_ * passParams.projParams_.x) + passParams.projParams_.y);
+        float cocDiv = passParams.projParams_.y * (params_.focusZ_ - F);
+        float cocBias = A * F * ((params_.focusZ_ * passParams.projParams_.x) - passParams.projParams_.y);
         passParams.cocParams_.x = cocPixelFactor * (A * F * params_.focusZ_) / cocDiv; // coc scale
         passParams.cocParams_.y = cocPixelFactor * cocBias / cocDiv; // coc bias
 
@@ -343,7 +333,21 @@ namespace viscom::enh {
         ComputeDoFPass(passParams);
 
         FillPass(passParams);
+    }
 
-        CompositePass(passParams, targetFBO);
+    void DepthOfField::ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const FrameBuffer* targetFBO, std::size_t drawBufferIndex)
+    {
+        dof::DoFPassParams passParams;
+        ApplyEffectInternal(passParams, cam, static_cast<float>(targetFBO->GetHeight()), colorTex, depthTex);
+
+        targetFBO->DrawToFBO(std::vector<std::size_t>{drawBufferIndex}, [this, &passParams]() { CompositePass(passParams); });
+    }
+
+    void DepthOfField::ApplyEffect(const CameraHelper & cam, GLuint colorTex, GLuint depthTex, const FrameBuffer * targetFBO)
+    {
+        dof::DoFPassParams passParams;
+        ApplyEffectInternal(passParams, cam, static_cast<float>(targetFBO->GetHeight()), colorTex, depthTex);
+
+        targetFBO->DrawToFBO([this, &passParams]() { CompositePass(passParams); });
     }
 }

@@ -21,7 +21,7 @@ void main()
     float coc = (depthNDC * cocParams.x) + cocParams.y;
 
     cocResult = vec4(0.0f);
-    if (coc < 0.0f) cocResult.y = -coc; // far
-    else cocResult.x = coc; // near
+    if (coc < 0.0f) cocResult.y = clamp(-coc, 0.0, 1.0); // far
+    else cocResult.x = clamp(coc, 0.0, 1.0); // near
     cocResult.z = depthNDCToView(depthNDC);
 }

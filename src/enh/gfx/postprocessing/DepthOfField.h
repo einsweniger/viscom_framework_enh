@@ -40,7 +40,6 @@ namespace viscom::enh {
         float fStopsMax_;
         int bokehShape_;
         float rotateBokehMax_;
-        float blendFactor_;
 
         template<class Archive> void serialize(Archive& ar, const std::uint32_t) {
             ar(cereal::make_nvp("focusZ", focusZ_),
@@ -49,8 +48,7 @@ namespace viscom::enh {
                 cereal::make_nvp("fStopsMin", fStopsMin_),
                 cereal::make_nvp("fStopsMax", fStopsMax_),
                 cereal::make_nvp("bokehShape", bokehShape_),
-                cereal::make_nvp("rotateBokehMax", rotateBokehMax_),
-                cereal::make_nvp("blendFactor", blendFactor_));
+                cereal::make_nvp("rotateBokehMax", rotateBokehMax_));
         }
     };
 
@@ -61,6 +59,7 @@ namespace viscom::enh {
         ~DepthOfField();
 
         void RenderParameterSliders();
+        void ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const FrameBuffer* targetFBO, std::size_t drawBufferIndex);
         void ApplyEffect(const CameraHelper& cam, GLuint colorTex, GLuint depthTex, const FrameBuffer* targetFBO);
 
         template<class Archive> void SaveParameters(Archive& ar, const std::uint32_t) const {
@@ -72,6 +71,7 @@ namespace viscom::enh {
         }
 
     private:
+        void ApplyEffectInternal(dof::DoFPassParams& passParams, const CameraHelper& cam, float resX, GLuint colorTex, GLuint depthTex);
         void RecalcBokeh();
         void CoCPass(const dof::DoFPassParams& passParams);
         void DownsamplePass(const dof::DoFPassParams& passParams);
@@ -79,7 +79,7 @@ namespace viscom::enh {
         void NearCoCBlurPass(const dof::DoFPassParams& passParams, std::size_t pass, std::size_t sourceTex);
         void ComputeDoFPass(const dof::DoFPassParams& passParams);
         void FillPass(const dof::DoFPassParams& passParams);
-        void CompositePass(const dof::DoFPassParams& passParams, const FrameBuffer* targetFBO);
+        void CompositePass(const dof::DoFPassParams& passParams);
 
         /** Holds the base application object. */
         ApplicationNodeBase* app_;

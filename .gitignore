@@ -3,5 +3,6 @@ _SYNCAPP/
 **/*Precompute*.???
 data/*/*.dat
 resources/shader/**/*.gen
+resources/**/*.viscombin
 
 !resources/**/*.obj
