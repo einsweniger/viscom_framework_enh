@@ -87,7 +87,7 @@ namespace viscom::enh {
 
     void ApplicationNodeBase::CleanUp()
     {
-        //simpleMeshes_ = nullptr;
+        simpleMeshes_ = nullptr;
         cubicWeightsTexture_ = nullptr;
     }
 

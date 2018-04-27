@@ -32,7 +32,7 @@ namespace viscom::enh {
 
         ShaderBufferBindingPoints* GetUBOBindingPoints() { return &uniformBindingPoints_; }
         ShaderBufferBindingPoints* GetSSBOBindingPoints() { return &shaderStorageBindingPoints_; }
-        //const SimpleMeshRenderer* GetSimpleMeshes() const { return simpleMeshes_.get(); }
+        const SimpleMeshRenderer* GetSimpleMeshes() const { return simpleMeshes_.get(); }
         const GLTexture& GetCubicWeightsTexture() const { return *cubicWeightsTexture_; }
 
     private:
@@ -41,7 +41,7 @@ namespace viscom::enh {
         /** Holds the shader storage buffer object binding points. */
         ShaderBufferBindingPoints shaderStorageBindingPoints_;
         /** Holds the simple meshes renderer. */
-        //std::unique_ptr<SimpleMeshRenderer> simpleMeshes_;
+        std::unique_ptr<SimpleMeshRenderer> simpleMeshes_;
         /** Holds the texture for cubic filtering weights. */
         std::unique_ptr<GLTexture> cubicWeightsTexture_;
     };
