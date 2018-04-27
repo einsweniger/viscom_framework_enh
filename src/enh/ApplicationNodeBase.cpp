@@ -9,6 +9,7 @@
 #include "ApplicationNodeBase.h"
 
 #include "core/glfw.h"
+#include "enh/gfx/mesh/SimpleMeshRenderer.h"
 #include <glbinding/gl/gl.h>
 #include <glbinding/Binding.h>
 #include <glbinding/glbinding.h>
