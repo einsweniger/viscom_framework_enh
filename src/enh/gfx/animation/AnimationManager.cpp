@@ -150,7 +150,7 @@ namespace viscom::enh {
         std::ifstream wpFile(directory_ + "/" + filename, std::ios::in);
         if (wpFile.is_open()) {
             cereal::XMLInputArchive ia(wpFile);
-            ia(cereal::make_nvp("animation", animations_[set]));
+            ia(cereal::make_nvp("animations", animations_[set]));
         }
     }
 
@@ -160,7 +160,7 @@ namespace viscom::enh {
         std::ofstream ofs(directory_ + "/" + filename, std::ios::out);
 
         cereal::XMLOutputArchive oa(ofs);
-        oa(cereal::make_nvp("animation", animations_[set]));
+        oa(cereal::make_nvp("animations", animations_[set]));
     }
 
     template <class T>
