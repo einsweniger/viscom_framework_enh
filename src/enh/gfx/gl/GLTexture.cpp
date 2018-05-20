@@ -266,17 +266,23 @@ namespace viscom::enh {
 
     void GLTexture::DownloadData8Bit(std::vector<uint8_t>& data) const
     {
+        DownloadData8Bit(id_.textureId, descriptor_, id_.textureType, glm::uvec3(width_, height_, depth_), data);
+    }
+
+    void GLTexture::DownloadData8Bit(gl::GLuint texture, const TextureDescriptor& descriptor,
+        gl::GLenum textureType, const glm::uvec3& size, std::vector<uint8_t>& data)
+    {
         auto comp = 0;
-        if (descriptor_.format_ == gl::GL_RED) comp = 1;
-        else if (descriptor_.format_ == gl::GL_RG) comp = 2;
-        else if (descriptor_.format_ == gl::GL_RGB) comp = 3;
-        else if (descriptor_.format_ == gl::GL_RGBA) comp = 4; //-V112
+        if (descriptor.format_ == gl::GL_RED) comp = 1;
+        else if (descriptor.format_ == gl::GL_RG) comp = 2;
+        else if (descriptor.format_ == gl::GL_RGB) comp = 3;
+        else if (descriptor.format_ == gl::GL_RGBA) comp = 4; //-V112
         else {
             LOG(WARNING) << "Texture format not supported for downloading.";
             return;
         }
 
-        data.resize(static_cast<std::size_t>(width_ * height_ * depth_ * comp));
+        data.resize(static_cast<std::size_t>(size.x * size.y * size.z * comp));
         assert(data.size() != 0);
 
         // TODO: create external PBOs for real asynchronous up-/download [8/19/2015 Sebastian Maisch]
@@ -284,8 +290,8 @@ namespace viscom::enh {
         gl::glBindBuffer(gl::GL_PIXEL_PACK_BUFFER, pbo);
         gl::glBufferData(gl::GL_PIXEL_PACK_BUFFER, data.size(), nullptr, gl::GL_STREAM_READ);
 
-        gl::glBindTexture(id_.textureType, id_.textureId);
-        gl::glGetTexImage(id_.textureType, 0, descriptor_.format_, gl::GL_UNSIGNED_BYTE, nullptr);
+        gl::glBindTexture(textureType, texture);
+        gl::glGetTexImage(textureType, 0, descriptor.format_, gl::GL_UNSIGNED_BYTE, nullptr);
 
         gl::glMemoryBarrier(gl::GL_ALL_BARRIER_BITS);
         auto gpuMem = gl::glMapBuffer(gl::GL_PIXEL_PACK_BUFFER, gl::GL_READ_ONLY);
@@ -294,31 +300,38 @@ namespace viscom::enh {
             glUnmapBuffer(gl::GL_PIXEL_PACK_BUFFER);
         }
 
-        gl::glBindTexture(id_.textureType, 0);
+        gl::glBindTexture(textureType, 0);
         gl::glBindBuffer(gl::GL_PIXEL_PACK_BUFFER, 0);
     }
 
     void GLTexture::SaveTextureToFile(const std::string& filename) const
     {
+        assert(id_.textureType == gl::GL_TEXTURE_2D);
+        SaveTextureToFile(id_.textureId, descriptor_, glm::uvec3(width_, height_, depth_), filename);
+    }
+
+    void GLTexture::SaveTextureToFile(gl::GLuint texture, const TextureDescriptor& descriptor,
+        const glm::uvec3& size, const std::string& filename)
+    {
         auto comp = 0;
-        if (descriptor_.format_ == gl::GL_RED) comp = 1;
-        else if(descriptor_.format_ == gl::GL_RG) comp = 2;
-        else if(descriptor_.format_ == gl::GL_RGB) comp = 3;
-        else if(descriptor_.format_ == gl::GL_RGBA) comp = 4; //-V112
+        if (descriptor.format_ == gl::GL_RED) comp = 1;
+        else if (descriptor.format_ == gl::GL_RG) comp = 2;
+        else if (descriptor.format_ == gl::GL_RGB) comp = 3;
+        else if (descriptor.format_ == gl::GL_RGBA) comp = 4; //-V112
         else {
             LOG(WARNING) << "Texture format not supported for saving.";
             return;
         }
         std::vector<uint8_t> screenData;
-        DownloadData8Bit(screenData);
+        DownloadData8Bit(texture, descriptor, gl::GL_TEXTURE_2D, size, screenData);
 
-        auto stride = static_cast<int>(width_ * comp);
-        for (unsigned i = 0; i < height_ / 2; ++i) {
+        auto stride = static_cast<int>(size.x * comp);
+        for (unsigned i = 0; i < size.y / 2; ++i) {
             auto first = i * stride;
             auto last = ((i + 1) * stride) - 1;
             std::swap_ranges(screenData.begin() + first, screenData.begin() + last, screenData.end() - last - 1);
         }
-        stbi_write_png(filename.c_str(), width_, height_, comp, screenData.data(), stride * static_cast<int>(sizeof(uint8_t)));
+        stbi_write_png(filename.c_str(), size.x, size.y, comp, screenData.data(), stride * static_cast<int>(sizeof(uint8_t)));
     }
 
     /**

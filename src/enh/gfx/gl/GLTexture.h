@@ -80,6 +80,11 @@ namespace viscom::enh {
         glm::uvec3 GetLevelDimensions(int level) const;
         const TextureDescriptor& GetDescriptor() const { return descriptor_; }
 
+        static void DownloadData8Bit(gl::GLuint texture, const TextureDescriptor& descriptor,
+            gl::GLenum textureType, const glm::uvec3& size, std::vector<uint8_t>& data);
+        static void SaveTextureToFile(gl::GLuint texture, const TextureDescriptor& descriptor,
+            const glm::uvec3& size, const std::string& filename);
+
         void SampleWrapMirror() const;
         void SampleWrapClamp() const;
         void SampleWrapRepeat() const;
