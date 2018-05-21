@@ -87,6 +87,7 @@ namespace viscom::enh {
         void SampleWrapBorderColor(const glm::vec4& color) const;
         void SampleLinear() const;
         void SampleNearest() const;
+        unsigned int GetId() {return id_.textureId;}
 
         void ActivateShadowMapComparison() const;
 
