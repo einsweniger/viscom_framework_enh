@@ -7,7 +7,7 @@
  */
 
 #include "EnvironmentMapRenderer.h"
-#include "core/ApplicationNodeBase.h"
+#include "enh/ApplicationNodeBase.h"
 #include "core/gfx/FullscreenQuad.h"
 #include <glm/gtc/type_ptr.hpp>
 

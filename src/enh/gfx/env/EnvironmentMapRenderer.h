@@ -15,12 +15,12 @@
 namespace viscom {
     class GPUProgram;
     class FullscreenQuad;
-    class ApplicationNodeBase;
     class CameraHelper;
 }
 
 namespace viscom::enh {
 
+    class ApplicationNodeBase;
 
     class EnvironmentMapRenderer
     {

@@ -5,3 +5,9 @@ vec3 sphericalToCartesian(vec2 sph) {
     float sint = sin(theta);
     return normalize(vec3(sint * cos(phi), cos(theta), sint * sin(phi)));
 }
+
+vec2 cartesianToSpherical(vec3 cart) {
+    float phi = atan(cart.z, cart.x);
+    float theta = acos(cart.y);
+    return vec2(phi, theta);
+}

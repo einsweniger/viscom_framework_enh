@@ -43,11 +43,12 @@ list(APPEND ENH_INCLUDE_DIRS
     extern/fwenh/extern/glbinding/source/glbinding/include
     ${CMAKE_CURRENT_BINARY_DIR}/extern/fwenh/extern/glbinding/source/include
     ${CMAKE_CURRENT_BINARY_DIR}/extern/fwenh/extern/glbinding/source/glbinding/include
-    extern/fwenh/extern/glbinding/source/glbinding-aux/include
-    ${CMAKE_CURRENT_BINARY_DIR}/extern/fwenh/extern/glbinding/source/glbinding-aux/include
+#    extern/fwenh/extern/glbinding/source/glbinding-aux/include
+#    ${CMAKE_CURRENT_BINARY_DIR}/extern/fwenh/extern/glbinding/source/glbinding-aux/include
     extern/fwenh/extern/cereal/include)
 
-list(APPEND ENH_LIBS glbinding glbinding-aux)
+list(APPEND ENH_LIBS glbinding)
+# list(APPEND ENH_LIBS glbinding glbinding-aux)
 list(APPEND COMPILE_TIME_DEFS $<$<CONFIG:DebugOpenGLCalls>:VISCOM_OGL_DEBUG_MSGS> GLFW_INCLUDE_NONE _SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 
 if (VISCOM_DO_PROFILING)
