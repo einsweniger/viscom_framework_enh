@@ -91,7 +91,7 @@ namespace viscom::enh {
         void ActivateShadowMapComparison() const;
 
         const TextureGLIdentifierAccessor& GetGLIdentifier() const { return id_; };
-
+        gl::GLuint GetId() const {return id_.textureId;}
     private:
         void SetSampleWrap(gl::GLenum param) const;
 
